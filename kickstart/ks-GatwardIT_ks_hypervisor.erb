@@ -1,0 +1,198 @@
+<%#
+kind: provision
+name: GatwardIT_ks_hypervisor
+oses:
+- Red Hat Enterprise Linux 7
+%>
+<%
+  rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+  os_major = @host.operatingsystem.major.to_i
+  # safemode renderer does not support unary negation
+  pm_set = @host.puppetmaster.empty? ? false : true
+  puppet_enabled = pm_set || @host.params['force-puppet']
+  ipv6_disabled = @host.params['ipv6_disabled'] ? true : false
+  auth_ldap = @host.params['auth_ldap'] ? true : false
+  auth_ad = @host.params['auth_ad'] ? true : false
+  enable_gui = @host.params['enable_gui'] ? true : false  
+  section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
+%>
+install
+<%= @mediapath %>
+lang en_US.UTF-8
+selinux --enforcing
+keyboard us
+skipx
+
+<% subnet = @host.subnet -%>
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+<% dhcp = subnet.dhcp_boot_mode? && !@static -%>
+<% else -%>
+<% dhcp = !@static -%>
+<% end -%>
+
+network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{subnet.mask} --gateway=#{subnet.gateway} --nameserver=#{[subnet.dns_primary, subnet.dns_secondary].select{ |item| item.present? }.join(',')}" %> --hostname <%= @host %><%= os_major >= 6 ? " --device=#{@host.mac}" : '' -%>
+
+rootpw --iscrypted <%= root_pass %>
+firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
+authconfig --useshadow --passalgo=sha512 --kickstart
+timezone --utc <%= @host.params['time-zone'] || 'Australia/Sydney' %>
+
+bootloader --location=mbr --append="nofb quiet splash=quiet" <%= grub_pass %>
+
+# Setup disk partitioning
+<% if @dynamic -%>
+%include /tmp/diskpart.cfg
+<% else -%>
+<%= @host.diskLayout %>
+<% end -%>
+
+text
+reboot
+
+%packages --ignoremissing
+aide
+bash-completion
+chrony
+dhclient
+mlocate
+ntpdate
+policycoreutils-python
+policycoreutils-restorecond
+screen
+tree
+vim
+wget
+yum
+@Core
+<%= section_end -%>
+
+<% if @dynamic -%>
+%pre
+<%= @host.diskLayout %>
+<%= section_end -%>
+<% end -%>
+
+%post --nochroot
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+cp -va /etc/resolv.conf /mnt/sysimage/etc/resolv.conf
+/usr/bin/chvt 1
+) 2>&1 | tee /mnt/sysimage/root/install.postnochroot.log
+<%= section_end -%>
+
+
+%post
+logger "Starting anaconda <%= @host %> postinstall"
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+<%= snippet 'kickstart_networking_setup' %>
+<% end -%>
+
+#update local time
+echo "updating system time"
+ntpdate -sub <%= @host.params['ntp-server'] || 'ntp1.core.home.gatwards.org' %>
+hwclock --systohc
+
+<%= snippet "Server_SOE-subscription_manager_registration" %>
+
+<%# Generate new SSH keys %>
+<%= snippet "Server_SOE-GenSSHkeys" %>
+
+<% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
+<%= snippet "Server_SOE-idm_register" %>
+<% end -%>
+
+# update all the base packages from the updates repository
+yum -t -y -e 0 update
+
+<%# This snippet is to be replaced by puppet modules -%>
+# Apply Generic config
+<%#= snippet "Server_SOE-MISC" %>
+
+
+<%# Apply add Root CA -%>
+<%= snippet "Server_SOE-trust_root_cert" %>
+
+<%# Apply static ISM hardening - can be overridden by system owners if needed -%>
+<%#= snippet "Server_SOE-ISM" %>
+
+<%# Apply default hardened SSH server configuration -%>
+cat > /etc/ssh/sshd_config << EOL
+<%= snippet 'Server_SOE-sshd' %>
+EOL
+<%# Apply default hardened SSH client configuration -%>
+cat > /etc/ssh/ssh_config << EOL
+<%= snippet 'Server_SOE-ssh_client' %>
+EOL
+
+<%# Remove unwanted users-%>
+<%= snippet 'Server_SOE-user-del' %>
+
+cat << EOF >> /etc/hosts
+10.1.12.21   storage1
+10.1.12.22   storage2
+10.1.12.23   storage3
+10.1.12.24   storage4
+EOF
+
+subscription-manager repos --enable rh-gluster-3-for-rhel-7-server-rpms
+yum -y install glusterfs-server
+systemctl enable glusterd 
+sed -i '/option event-threads 1/a\ \ \ \ option rpc-auth-allow-insecure on' /etc/glusterfs/glusterd.vol
+sed -i 's/option ping-timeout.*/option ping-timeout 10/' /etc/glusterfs/glusterd.vol
+
+firewall-offline-cmd --add-service glusterfs
+
+
+<% if puppet_enabled %>
+# and add the puppet package
+yum -t -y -e 0 install puppet
+
+echo "Configuring puppet"
+cat > /etc/puppet/puppet.conf << EOL
+<%= snippet 'puppet.conf' %>
+EOL
+
+# Setup puppet to run on system reboot
+<% if os_major >= 7 -%>
+systemctl enable puppet
+<% else -%>
+/sbin/chkconfig --level 345 puppet on
+<% end -%>
+
+/usr/bin/puppet agent --config /etc/puppet/puppet.conf -o --tags no_such_tag <%= @host.puppetmaster.blank? ? '' : "--server #{@host.puppetmaster}" %> --no-daemonize
+<% end -%>
+
+# Disable remote root login after SOE is built and tests have run
+#echo "sed -i 's/^PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config ; service sshd restart > /dev/null" | at now + 30 minutes > /dev/null 2>&1 || echo "Error: Failed to schedule disabling root login via SSH."
+#echo "Finished scheduling job to disable root login via SSH"
+
+
+
+<%# After disabling kernel modules such as for Removable Media,Bluetooth, uncommon filesystems and protocols a new initramfs image must be created -%>
+echo "Starting : Rebuild initramfs"
+KERNEL_VERSION=$(rpm -q kernel --qf '%{version}-%{release}.%{arch}\n' | tail -n 1)
+echo $KERNEL_VERSION
+dracut -f /boot/initramfs-$KERNEL_VERSION.img $KERNEL_VERSION
+echo "Finished  : Rebuild initramfs"
+<%# After disabling kernel modules such as for Removable Media,Bluetooth, uncommon filesystems and protocols a new initramfs image must be created end -%>
+
+sync
+
+<% if @provisioning_type == nil || @provisioning_type == 'host' -%>
+
+# Inform the build system that we are done.
+echo "Informing Satellite that we are built"
+wget -q -O /dev/null --no-check-certificate <%= foreman_url('built') %>
+<% end -%>
+) 2>&1 | tee /root/install.post.log
+exit 0
+
+<%= section_end -%>
+
+
