@@ -1,0 +1,56 @@
+<%#
+kind: snippet
+name: snippet_homedirs
+%>
+
+<%# Snippet to enable autofs for home directories if required.
+Relies on the localhomes host parameter.
+If localhomes parameter exists then only local directories are used, oddjobd is used to create local directories for LDAP users.
+If localhomes does not exist then autofs is enabled and nfs home directories are used.
+%>
+echo "+++++++++++++++++++++++++++++ Home directory configuration Snippet +++++++++++++++++++++++++++++++++++"
+
+<% if host_param_true?('localhomedirs') -%>
+  # Install required additional packages
+  echo ">>> Installing oddjob packages..."
+  yum -q -y install oddjob oddjob-mkhomedir
+  systemctl enable oddjobd
+<% else -%>
+  # Install required additional packages
+  yum -q -y install autofs nfs-utils samba-client samba-common cifs-utils
+
+#############
+  # Setup /home using LDAP/NFS
+  echo "/home  ldap:automountMapName=auto.home,dc=home,dc=gatwards,dc=org" > /etc/auto.master
+
+  /usr/sbin/setsebool -P use_nfs_home_dirs 1
+
+#### OR #####
+
+  # Setup /home using CIFS
+  cat << EOF > /etc/auto.winhomes
+#!/bin/sh
+OPTS="-fstype=cifs,nobrl,mfsymlinks,sec=krb5,user=\$1,cruid=\$1,uid=\$1,file_mode=0700,dir_mode=0700"
+PATH="//cifsserver.domain.com/\$1"
+echo "\$OPTS :\$PATH"
+EOF
+  chmod 755 /etc/auto.winhomes
+
+  sed -i '/^\/misc.*/a\/home   \/etc\/auto.winhomes --timeout=240' /etc/auto.master
+
+  systemctl disable oddjobd
+  systemctl enable autofs
+
+  <%# Remove any oddjob references in pam.d files - AD join enables oddjob categorically %>
+  for PAMFILE in /etc/pam.d/system-auth /etc/pam.d/password-auth; do
+    sed -i '/pam_oddjob_mkhomedir.so/d' ${PAMFILE}
+  done
+
+  setsebool -P use_samba_home_dirs 1
+
+###########
+
+<% end -%>
+
+
+

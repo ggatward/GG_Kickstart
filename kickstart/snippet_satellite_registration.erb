@@ -1,0 +1,36 @@
+<%#
+kind: snippet
+name: snippet_satellite_registration
+%>
+echo "++++++++++++++++++ Red Hat Satellite registration Snippet +++++++++++++++++++++++++++++++++++"
+
+<%# Subscription manager registration snippet, customized for environment -%>
+<% if @host.params['kt_activation_keys'] %>
+
+  echo ">>> Install Satellite Certificates"
+  rpm -ivh <%= subscription_manager_configuration_url(@host) %>
+
+  echo ">>> Adding custom Satellite facts"
+  echo "{\"satellite.capsule\":\"$(grep baseurl /etc/rhsm/rhsm.conf | cut -f3 -d/)\"}" > /etc/rhsm/facts/satellite.facts
+
+  subscription-manager config --server.server_timeout 180
+
+  echo ">>> Registering the system to Satellite"
+  sleep $((RANDOM % 15))
+  subscription-manager register --org="<%= @host.rhsm_organization_label %>" --name="<%= @host.name %>" --activationkey="<%= @host.params['kt_activation_keys'] %>"
+
+  sleep 10
+  subscription-manager attach --auto
+
+  <% if @host.operatingsystem.name == "RedHat" %>
+    # Enable additional repositories
+    echo ">>> Enable additional RHEL repositories"
+    subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
+    subscription-manager repos --enable=rhel-*-server-optional-rpms
+  <% end %>
+
+  echo ">>> Installing Katello Agent Tools"
+  yum -q -y install katello-host-tools
+<% end %>
+
+

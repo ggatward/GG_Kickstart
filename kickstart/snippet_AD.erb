@@ -1,0 +1,50 @@
+<%#
+kind: snippet
+name: snippet_AD
+%>
+echo "++++++++++++++++++++++++++ AD Join Snippet +++++++++++++++++++++++++++++"
+
+# Install required packages
+echo ">>> Installing packages..."
+yum -q -y install sssd sssd-ad adcli realmd samba-common samba-common-tools krb5-workstation
+
+# Ensure hostname is set
+hostnamectl set-hostname <%= @host %>
+
+# This MUST come before the realm command to be effective
+cat > /etc/realmd.conf << EOF
+[users]
+  default-home = /home/%U
+  default-shell = /bin/bash
+
+# Don't allow AD to control access
+[<%= @host.params['ad'].downcase %>]
+  manage-system = no
+  # We must disable auto-mapping so that AD defined UID/GID are set
+  automatic-id-mapping = no
+EOF
+
+echo ">>>>>>>>>>>>>>>>>>>>>>> Ignore any password prompts here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+<% if @host.params['ad'] == 'MYDOMAIN.COM' -%>
+  echo '<%= @host.params['ad_join_passwd']%>' | realm join -U <%= @host.params['ad_join_user'] %> -v <%= @host.params['ad'] %> --unattended --install=/ --computer-ou="ou=Linux Servers,ou=Servers,ou=DOMAIN,dc=mydomain,dc=com"
+<% else -%>
+  echo '<%= @host.params['ad_join_passwd']%>' | realm join -U <%= @host.params['ad_join_user'] %> -v <%= @host.params['ad'] %> --unattended --install=/
+<% end -%>
+# Allow any AD user to login - we can control access through access.conf if we need to
+echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
+
+# Update sssd confug for AD
+sed -i '/services = nss, pam/a default_domain_suffix = <%= @host.params['ad'].downcase %>' /etc/sssd/sssd.conf
+sed -i 's/fallback_homedir.*/fallback_homedir = \/home\/%u/' /etc/sssd/sssd.conf
+sed -i '/default_domain_suffix = <%= @host.params['ad'].downcase %>/a full_name_format = %1$s' /etc/sssd/sssd.conf
+
+<% if @host.params['ad'] == 'MYDOMAIN.COM' -%>
+  cat << EOF > /etc/sudoers.d/domainusers
+%group   ALL=(ALL)  ALL
+%group   ALL=(ALL)  NOPASSWD: /bin/mount, /bin/umount
+EOF
+<% else -%>
+  cat << EOF > /etc/sudoers.d/domain2users
+%group   ALL=(ALL)  ALL
+EOF
+<% end -%>

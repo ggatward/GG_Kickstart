@@ -1,0 +1,19 @@
+<%#
+kind: snippet
+name: snippet_trust_certs
+%>
+echo "++++++++++++++++++++++++++++++++++++++ SSL CA Installation Snippet +++++++++++++++++++++++++++"
+
+echo ">>> Adding CA Certs"
+/usr/bin/update-ca-trust enable
+
+CERTLIST1="CA2 CA3 CA4"
+CERTLIST2="CA01 CA02 CA03"
+
+for cert in $CERTLIST1 $CERTLIST2; do
+  wget -q -O /etc/pki/ca-trust/source/anchors/${cert}.pem http://some-server.example.com/certs/${cert}.pem
+done
+
+/usr/bin/update-ca-trust
+
+
