@@ -1,0 +1,18 @@
+<%#
+kind: snippet
+name: snippet_nessus
+%>
+echo "+++++++++++++++++++ Nessus Agent Installation Snippet +++++++++++++++++++++++++"
+
+echo ">>> Installing packages..."
+yum -q -y install NessusAgent
+
+<%# If the agent is already linked we need to unlink it %>
+/opt/nessus_agent/sbin/nessuscli agent unlink
+
+<%# Register agent %>
+if [ "<%= @host.hostgroup %>" == "MYORG/HOSTGROUP1" ]; then
+  /opt/nessus_agent/sbin/nessuscli agent link --key=sajdfkjadfjauh9ht935guhbndsjbvwb45hg --host=<%= @host.params['nessus_host'] %> --port=443 --groups='Linux Servers'
+else
+  /opt/nessus_agent/sbin/nessuscli agent link --key=sajdfkjadfjauh9ht935guhbndsjbvwb45hg --host=<%= @host.params['nessus_host'] %> --port=443 --groups='Other Servers'
+fi

@@ -1,0 +1,34 @@
+<%#
+kind: snippet
+name: snippet_ISM
+%>
+echo "+++++++++++++++++++++++++ ISM Hardening Snippet +++++++++++++++++++++++++++++++"
+
+echo ">>> Disable wheel group sudo"
+sed -i 's/^%wheel\s.*ALL=(ALL).*/# %wheel\tALL=(ALL)\t\tALL/g' /etc/sudoers
+
+<%# -------------------- DISABLE SERVICES SECTION -----------------------------%>
+echo ">>> Disable postfix"
+systemctl disable postfix.service
+
+<%# ----------------------- KERNEL TUNING SECTION -----------------------------%>
+echo ">>> Kernel tuning parameters"
+wget -q -O /etc/sysctl.conf http://repo.example.org/configs/sysctl.conf
+
+<%# Remove kernel exec-shield from sysctl.conf as it is no longer a tuning option
+for RHEL 7. ExecShield is enabled in the kernel by default now. %>
+if (grep -q 'kernel\.exec-shield' /etc/sysctl.conf); then
+  sed -Ei "/^(#kernel\.exec-shield|kernel\.exec-shield).*/d" /etc/sysctl.conf
+fi
+
+
+<%# ----------------------- ULIMIT HARDENING SECTION --------------------------%>
+echo ">>> User limits configuration"
+
+
+
+<%# ----------------------- UMASK HARDENING SECTION ---------------------------%>
+echo ">>> Setting default umasks"
+
+
+

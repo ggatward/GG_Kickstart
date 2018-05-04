@@ -1,0 +1,34 @@
+<%#
+kind: snippet
+name: snippet_misc
+%>
+echo "+++++++++++++++++ Misc Tools and Configuration Snippet ++++++++++++++++++++++++"
+
+echo ">>> Installing packages..."
+yum -q -y install autofs nfs-utils samba-client samba-common cifs-utils
+
+echo ">>> Configuring network mount points"
+mkdir -p /data/{dir1,dir2,dir3}
+
+<%# Create mount script %>
+cat << EOF > /usr/local/bin/mounts.sh
+sudo /bin/mount -t cifs -o user=\$USER,cruid=\$USER,uid=\$USER,sec=krb5 //nas1.example.com/homes/\$USER
+EOF
+
+echo ">>> Configure mail relay"
+sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.gatwards.org/' /etc/postfix/main.cf
+
+echo ">>> Removing rhgb kernel option"
+sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub
+
+echo ">>> Configuring root prompt"
+if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
+  echo 'export PS1="......"' >> /root/.bashrc
+elif [ $(hostname -f | grep -c '.lab.') -eq 1 ]; then
+  echo 'export PS1="......"' >> /root/.bashrc
+else
+  echo 'export PS1="......"' >> /root/.bashrc
+fi
+
+echo ">>> Installing other common tools"
+yum -q -y install git tree iotop vim iptraf htop dstat dropwatch iptstate bash-completion bash-completion-extras

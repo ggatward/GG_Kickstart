@@ -22,12 +22,9 @@ echo "++++++++++++++++++ Red Hat Satellite registration Snippet ++++++++++++++++
   sleep 10
   subscription-manager attach --auto
 
-  <% if @host.operatingsystem.name == "RedHat" %>
-    # Enable additional repositories
-    echo ">>> Enable additional RHEL repositories"
-    subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
-    subscription-manager repos --enable=rhel-*-server-optional-rpms
-  <% end %>
+  echo ">>> Enable additional RHEL repositories"
+  subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
+  subscription-manager repos --enable=rhel-*-server-optional-rpms
 
   echo ">>> Installing Katello Agent Tools"
   yum -q -y install katello-host-tools

@@ -1,0 +1,26 @@
+<%#
+kind: snippet
+name: snippet_centos_repos
+%>
+echo "++++++++++++++++++++++++++ CentOS repo Snippet ++++++++++++++++++++++++++++++++"
+
+<%# remove default repo configs %>
+rm -f /etc/yum.repos.d/CentOS*
+
+<%# Disable fastestmirror plugin %>
+sed -i 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf
+
+<%# Setup our local CentOS repos %>
+rpm --import http://repo.example.org/CentOS/RPM-GPG-KEY-CentOS-7
+cat << EOF > /etc/yum.repos.d/centos-local.repo
+[centos-el7-x86_64-os]
+name=centos-el7-x86_64-os
+baseurl=http://repo.example.org/CentOS/RPMS.os
+enabled=1
+gpgcheck=1
+EOF
+
+<%# Install packages that would normally be defined early in the kickstart.
+This is because the base/updates repos are not reliably defined early on in the CentOS builds %>
+echo ">>> Installing packages..."
+yum -q -y install yum-plugin-security aide dhclient dos2unix mlocate policycoreutils-python screen nvim wget chrony policycoreutils-restorecond bind-utils yum-utils
