@@ -23,11 +23,11 @@ sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub
 
 echo ">>> Configuring root prompt"
 if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
-  echo 'export PS1="......"' >> /root/.bashrc
+  echo 'export PS1="\[\033[0;36m\]\u@\h.qa\[\033[0;36m\][\w] #\[\033[0m\] "' >> /root/.bashrc
 elif [ $(hostname -f | grep -c '.lab.') -eq 1 ]; then
-  echo 'export PS1="......"' >> /root/.bashrc
+  echo 'export PS1="\[\033[0;33m\]\u@\h.lab\[\033[0;33m\][\w] #\[\033[0m\] "' >> /root/.bashrc
 else
-  echo 'export PS1="......"' >> /root/.bashrc
+  echo 'export PS1="\[\033[0;31m\]\u@\h\[\033[0;32m\][\w] #\[\033[0m\] "' >> /root/.bashrc
 fi
 
 echo ">>> Installing other common tools"
