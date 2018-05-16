@@ -1,0 +1,10 @@
+module my-krb5child 1.0;
+
+require {
+    type sssd_t;
+    type kernel_t;
+    class key { read view write };
+}
+
+#============= sssd_t ==============
+allow sssd_t kernel_t:key { read view write };

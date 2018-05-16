@@ -1,0 +1,14 @@
+<StoreCache>
+  <DefaultStore>https://citrix.example.com/config.xml</DefaultStore>
+  <ReconnectOnLogon>False</ReconnectOnLogon>
+  <ReconnectOnLaunchOrRefresh>False</ReconnectOnLaunchOrRefresh>
+  <SharedUserMode>False</SharedUserMode>
+  <FullscreenMode>0</FullscreenMode>
+  <SelfSelection>True</SelfSelection>
+  <SessionWindowedMode>False</SessionWindowedMode>
+  <VisibleStores>
+    <Store name="https://citrix.example.com/config.xml" type="PNA">
+      https://citrix.exmaple.com/config.xml
+    </Store>
+  </VisibleStores>
+</StoreCache>

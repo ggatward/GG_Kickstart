@@ -103,6 +103,23 @@ ln -s /etc/X11/xinit/scripts/xwarn.sh /etc/X11/xinit/xinitrc.d/xwarn.sh
   checkmodule -< -m -o /tmp/xrdp_mkhomedir.mod /tmp/xrdp_mkhomedir.te
   semodule_package -m /tmp/xrdp_mkhomedir.mod -o /tmp/xrdp_mkhomedir.pp
   semodule -i /tmp/xrdp_mkhomedir.pp
+
+  # Create polkit rules to allow xrdp access to colord 
+  # *** Set 'usergroup' to the posix user group to allow ***
+  cat << EOF > /etc/polkit-1/rules.d/99-xrdp-colord.rules
+polkit.addRule(function(action, subject) {
+   if ((action.id == "org.freedesktop.color-manager.create-device" ||
+        action.id == "org.freedesktop.color-manager.create-profile" ||
+        action.id == "org.freedesktop.color-manager.delete-device" ||
+        action.id == "org.freedesktop.color-manager.delete-profile" ||
+        action.id == "org.freedesktop.color-manager.modify-device" ||
+        action.id == "org.freedesktop.color-manager.modify-profile") &&
+       subject.isInGroup("usergroup")) {
+      return polkit.Result.YES;
+   }
+});
+EOF
+  chmod 644 /etc/polkit-1/rules.d/99-xrdp-colord.rules
 <% end %>
 
 <%# Configure krb5 accesses %>
