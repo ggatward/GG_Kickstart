@@ -166,13 +166,15 @@ echo ">>> Install Citrix Receiver"
 mkdir -p /tmp/rtmeok  # Needed for hdx-realtime install
 yum -q -y install ICAClient citrix-hdx-realtime-media-engine
 
-cp /etc/pki/ca-trust/source/anchors/AU-CERT.pem /opt/Citrix/ICAClient/keystore/cacerts
-chmod 644 /etc/pki/ca-trust/source/anchors/AU-CERT.pem
+cp /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
+chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
 /opt/Citrix/ICAClient/util/ctx_rehash
 
 # Copy global default configuration
 mkdir -p /etc/skel/.ICAClient/cache/Stores
-wget -q -O /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx http://repo.example.org/desktop/configs/StoreCache.ctx
+cat << EOF > /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
+<%= snippet "config_GG_citrix" %>
+EOF
 chmod 644 /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
 
 # Configure Printer
