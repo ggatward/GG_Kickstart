@@ -1,6 +1,6 @@
 <%#
 kind: snippet
-name: snippet_gui
+name: snippet_GG_gui
 %>
 echo "++++++++++++++++++++++ GUI Installation/Configure Snippet +++++++++++++++++++++"
 
@@ -104,7 +104,7 @@ ln -s /etc/X11/xinit/scripts/xwarn.sh /etc/X11/xinit/xinitrc.d/xwarn.sh
   semodule_package -m /tmp/xrdp_mkhomedir.mod -o /tmp/xrdp_mkhomedir.pp
   semodule -i /tmp/xrdp_mkhomedir.pp
 
-  # Create polkit rules to allow xrdp access to colord 
+  # Create polkit rules to allow xrdp access to colord
   # *** Set 'usergroup' to the posix user group to allow ***
   cat << EOF > /etc/polkit-1/rules.d/99-xrdp-colord.rules
 polkit.addRule(function(action, subject) {

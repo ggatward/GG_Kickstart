@@ -1,6 +1,6 @@
 <%#
 kind: snippet
-name: snippet_homedirs
+name: snippet_GG_homedirs
 %>
 
 <%# Snippet to enable autofs for home directories if required.
@@ -33,7 +33,7 @@ echo "
   cat << EOF > /etc/auto.winhomes
 #!/bin/sh
 OPTS="-fstype=cifs,nobrl,mfsymlinks,sec=krb5,user=\$1,cruid=\$1,uid=\$1,file_mode=0700,dir_mode=0700"
-PATH="//cifsserver.domain.com/\$1"
+PATH="//nas1.core.home.gatwards.org/\volume1/\$1"
 echo "\$OPTS :\$PATH"
 EOF
   chmod 755 /etc/auto.winhomes
@@ -53,6 +53,3 @@ EOF
 ###########
 
 <% end -%>
-
-
-

@@ -1,6 +1,6 @@
 <%#
 kind: snippet
-name: snippet_misc
+name: snippet_GG_misc
 %>
 echo "+++++++++++++++++ Misc Tools and Configuration Snippet ++++++++++++++++++++++++"
 
@@ -12,11 +12,11 @@ mkdir -p /data/{dir1,dir2,dir3}
 
 <%# Create mount script %>
 cat << EOF > /usr/local/bin/mounts.sh
-sudo /bin/mount -t cifs -o user=\$USER,cruid=\$USER,uid=\$USER,sec=krb5 //nas1.example.com/homes/\$USER
+sudo /bin/mount -t cifs -o user=\$USER,cruid=\$USER,uid=\$USER,sec=krb5 //nas1.core.home.gatwards.org/volume1/\$USER
 EOF
 
 echo ">>> Configure mail relay"
-sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.gatwards.org/' /etc/postfix/main.cf
+sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.home.gatwards.org/' /etc/postfix/main.cf
 
 echo ">>> Removing rhgb kernel option"
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub

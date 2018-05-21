@@ -96,9 +96,9 @@ exec < /dev/tty3 > /dev/tty3
 ### Network tweaks
 
 <% if @host.operatingsystem.name == "RedHat" %>
-  <%= snippet "snippet_satellite_registration" %>
+  <%= snippet "snippet_GG_satellite_registration" %>
 <% else -%>
-  <%= snippet "snippet_centos_repos" %>
+  <%= snippet "snippet_GG_centos_repos" %>
 <% end -%>
 
 ### Enable any custom repos
@@ -117,7 +117,7 @@ sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' /etc/chrony.co
 sed -i '/^server 3.*/d' /etc/chrony.conf
 
 <%# Generate stronger host SSH keys %>
-<%= snippet "snippet_generate_hardened_sshkeys" %>
+<%= snippet "snippet_GG_generate_hardened_sshkeys" %>
 
 <%# Apply SSH hardening -%>
 <%# We do this early in the KS as it will get modified by the IPA installer (if we are using it) %>
@@ -147,45 +147,45 @@ fi
 
 <%# If we are part of an IdM realm, enrol here -%>
 <% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
-  <%= snippet "snippet_idm_register" %>
+  <%= snippet "snippet_GG_idm_register" %>
 <% end -%>
 
 <%# If we are part of an AD domain, enrol here -%>
 <% if @host.params['ad'] -%>
-  <%= snippet "snippet_AD" %>
+  <%= snippet "snippet_GG_AD" %>
 <% end -%>
 
 <%# If we are part of an LDAP environment, bind to LDAP here -%>
 <% if @host.params['ldap'] -%>
-  <%= snippet "snippet_LDAP" %>
+  <%= snippet "snippet_GG_LDAP" %>
 <% end -%>
 
 <%# Configure either local or autofs home directories %>
-<%= snippet "snippet_homedirs" %>
+<%= snippet "snippet_GG_homedirs" %>
 
 <%# Install root CA certs %>
-<%= snippet "snippet_trust_certs" %>
+<%= snippet "snippet_GG_trust_certs" %>
 
 <%# Configure misc tooling %>
-<%= snippet "snippet_misc" %>
+<%= snippet "snippet_GG_misc" %>
 
 <%# If 'auto_update' host parameter is defined, configure yum-cron %>
 <% if host_param_true?('auto_update') -%>
-  <%= snippet "snippet_autoupdate" %>
+  <%= snippet "snippet_GG_autoupdate" %>
 <% end -%>
 
 <%# If the 'server_gui' host parameter is defined, install the GUI components %>
 <% if host_param_true?('server_gui') -%>
-  <%= snippet "snippet_gui" %>
+  <%= snippet "snippet_GG_gui" %>
 <% end -%>
 
 <%# If the 'nessus_agent' host parameter is defined, install the Nessus Scanner Agent %>
 <% if @host.params['nessus_agent'] -%>
-  <%= snippet "snippet_nessus" %>
+  <%= snippet "snippet_GG_nessus" %>
 <% end -%>
 
 <%# Apply initial static ISM hardening - can be overridden if needed %>
-<%= snippet "snippet_ISM" %>
+<%= snippet "snippet_GG_ISM" %>
 
 <%# In some situations our hostname is not being set. Force it here in case %>
 echo "<%= @host %>" > /etc/hostname

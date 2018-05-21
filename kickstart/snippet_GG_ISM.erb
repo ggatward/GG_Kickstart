@@ -1,6 +1,6 @@
 <%#
 kind: snippet
-name: snippet_ISM
+name: snippet_GG_ISM
 %>
 echo "+++++++++++++++++++++++++ ISM Hardening Snippet +++++++++++++++++++++++++++++++"
 
@@ -50,7 +50,7 @@ EOL
 
 <%# ----------------------- UMASK HARDENING SECTION ---------------------------%>
 echo ">>> Setting default umasks"
-# Some of this hardening may not make sense and has simply been done to meet STIG SCAP tests. 
+# Some of this hardening may not make sense and has simply been done to meet STIG SCAP tests.
 for PFILE in /etc/bashrc /etc/csh.cshrc /etc/profile; do
   sed -i 's/umask [0-9]\{3\}/umask 077/g' ${PFILE} || echo "Error: Failed setting umask in ${PFILE}."
 done
@@ -168,7 +168,7 @@ if [ "$(virt-what)" == "" ]; then
 fi
 
 
-<%# ---------------------------- AUDIT SECTION --------------------------------%> 
+<%# ---------------------------- AUDIT SECTION --------------------------------%>
 echo ">>> Configure audit"
 # Configure system to use audispd plugin to pass audit events to syslog for streaming
 sed -i 's/active = no/active = yes/g' /etc/audisp/plugins.d/syslog.conf
@@ -226,7 +226,7 @@ echo ">>> Applying pam hardening"
 for PAMFILE in /etc/pam.d/password-auth /etc/pam.d/system-auth; do
 
   ## Update comments to explain configuration and warn users about authconfig ######################
-  sed -i 's/^# This file is auto-generated./# This file has been customised to meet ISM requirements./' ${PAMFILE} 
+  sed -i 's/^# This file is auto-generated./# This file has been customised to meet ISM requirements./' ${PAMFILE}
 
   ## Implement "Faillock" to prevent brute force login attacks #####################################
   # 1/3 Second in the "auth" stack, after pam_env
@@ -349,7 +349,7 @@ rm /tmp/sshd_content
 sed -i 's/inet_protocols = all/inet_protocols = ipv4/g' /etc/postfix/main.cf
 
 <%# 6. Clean up /etc/sysconfig/network even though it doesn't prevent IPv6 being disabled %>
-<%# A system enrolled with IPA earlier in the ks will have a NISDOMAIN parameter in here.
+<%# A system enrolled with IPA earlier in the ks will have a NISDOMAIN parameter in here. %>
 if [ `grep -c NISDOMAIN /etc/sysconfig/network` -ne 0 ]; then
   NISDOMAIN=$(grep NISDOMAIN /etc/sysconfig/network | cut -f2 -d=)
 fi
@@ -392,7 +392,7 @@ firewall-offline-cmd --remove service dhcpv6-client
 echo ">>> Set login banner"
 cat << EOF > /etc/issue
 ######################################
-#  Issue Banner 
+#  Issue Banner
 ######################################
 EOF
 
@@ -438,7 +438,7 @@ fi
 
 <%# ------------------------- ANTIVIRUS SECTION ----------------------------%>
 <% if @host.params['sophos'] %>
-  <%= snippet "snippet_sophos" %>
+  <%= snippet "snippet_GG_sophos" %>
 <% end %>
 
 
@@ -455,8 +455,7 @@ the Network Bound Disk Encryption (NBDE) 'Tang' service to do this -%>
   for slot in 1 2 3 4 5 6 7; do
     luksmeta wipe -d ${cryptdev} -s ${slot} -f
   done
-  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang1.example.com","thp":"<%= @host.params['luks-tang-key1'] %>"}' <<< <%= @host.params['luks-passphrase'] %>
-  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang2.example.com","thp":"<%= @host.params['luks-tang-key2'] %>"}' <<< <%= @host.params['luks-passphrase'] %>
+  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang1.core.home.gatwards.org","thp":"<%= @host.params['luks-tang-key1'] %>"}' <<< <%= @host.params['luks-passphrase'] %>
+  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang2.core.home.gatwards.org","thp":"<%= @host.params['luks-tang-key2'] %>"}' <<< <%= @host.params['luks-passphrase'] %>
 #  cryptsetup luksRemoveKey ${cryptdev} - <<< <%= @host.params['luks-passphrase'] %>
 <% end %>
-

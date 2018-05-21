@@ -1,10 +1,10 @@
 <%#
 kind: snippet
-name: snippet_sophos
+name: snippet_GG_sophos
 %>
 echo "+++++++++++++++++++Sophos Agent Installation Snippet +++++++++++++++++++++++++++"
 <%# Install and configure sophos agent %>
-mount -o remoune,exec /tmp
+mount -o remount,exec /tmp
 yum -q -y install savinstpkg
 
 <%# Copy in savd config %>
@@ -16,4 +16,3 @@ echo ">>> Updating sophos definitions"
 
 <%# Set permissions so users can run scans %>
 chmod 755 /opt/sophos-av/bin
-
