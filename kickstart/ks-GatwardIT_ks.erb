@@ -122,8 +122,12 @@ sed -i '/^server 3.*/d' /etc/chrony.conf
 <%# Apply SSH hardening -%>
 <%# We do this early in the KS as it will get modified by the IPA installer (if we are using it) %>
 echo "+++++++++++++++++++++++++ Initial SSH hardening +++++++++++++++++++++++++++++++"
-wget -q -O /etc/ssh/ssh_config http://repo.example.com/configs/ssh_config
-wget -q -O /etc/ssh/sshd_config http://repo.example.com/configs/sshd_config
+cat << EOF > /etc/ssh/ssh_config
+<%= snippet "config_GG_ssh_config" %>
+EOF
+cat << EOF > /etc/ssh/sshd_config
+<%= snippet "config_GG_sshd_config" %>
+EOF
 # Just in case...
 dos2unix /etc/ssh/ssh_config
 dos2unix /etc/ssh/sshd_config
@@ -143,6 +147,11 @@ if [ "$(virt-what)" == "vmware" ]; then
   echo ">>> Installing VMware tools..."
   yum -q -y install open-vm-tools
   systemctl enable vmtoolsd
+elif [ "$(virt-what)" == "rhev" ]; then
+  echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
+  echo ">>> Installing ovirt guest agent..."
+  yum -q -y install ovirt-guest-agent
+  systemctl enable ovirt-guest-agent
 fi
 
 <%# If we are part of an IdM realm, enrol here -%>

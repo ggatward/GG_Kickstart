@@ -5,8 +5,7 @@ name: snippet_GG_gui
 echo "++++++++++++++++++++++ GUI Installation/Configure Snippet +++++++++++++++++++++"
 
 # Install desktop backgrounds
-BACKGROUNDS=/usr/share/backgrounds
-wget -q -O ${BACKGROUNDS}/internet-of-things.jpg http://repo.example.org/desktop/backgrounds/internet-of-things.jpg
+wget -q -O /usr/share/backgrounds/gg-default.jpg http://repo.example.org/desktop/backgrounds/internet-of-things.jpg
 
 <%# Install and configure the GUI packages %>
 echo ">>> Installing GUI packages..."
@@ -46,13 +45,13 @@ if [ -d /etc/dconf/db/gdm.d ]; then
 
   # Enable default background
   echo "[org/gnome/desktop/background]" > /etc/dconf/db/local.d/01-background
-  echo "picture-uri=file:///usr/share/backgrounds/internet-of-things.jpg" >> /etc/dconf/db/local.d/01-background
+  echo "picture-uri=file:///usr/share/backgrounds/gg-default.jpg" >> /etc/dconf/db/local.d/01-background
   # echo "/org/gnome/desktop/background/picture-uri" > /etc/dconf/db/local.d/locks/background
 
   # Add logo to the login screen
   mkdir -p /usr/share/pixmaps/logo/
-  wget -q -O /usr/share/pixmaps/logo/mylogo.png http://repo.example.org/desktop/backgrounds/mylogo.png
-  echo "logo='/usr/share/pixmaps/logo/mylogo.png'" >> /etc/dconf/db/gdm.d/00-login-screen
+  wget -q -O /usr/share/pixmaps/logo/gg-logo.png http://repo.example.org/desktop/backgrounds/gg-logo.png
+  echo "logo='/usr/share/pixmaps/logo/gg-logo.png'" >> /etc/dconf/db/gdm.d/00-login-screen
 
   #####
   # Fix default icon view level

@@ -13,7 +13,9 @@ systemctl disable postfix.service
 
 <%# ----------------------- KERNEL TUNING SECTION -----------------------------%>
 echo ">>> Kernel tuning parameters"
-wget -q -O /etc/sysctl.conf http://repo.example.org/configs/sysctl.conf
+cat << EOF > /etc/sysctl.conf
+<%= snippet "config_GG_sysctl.conf" %>
+EOF
 
 <%# Remove kernel exec-shield from sysctl.conf as it is no longer a tuning option
 for RHEL 7. ExecShield is enabled in the kernel by default now. %>
@@ -184,7 +186,9 @@ sed -i 's/disk_full_action = SUSPEND/disk_full_action = HALT/g' /etc/audit/audit
 sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/auditd.conf
 
 # Load the audit rules
-wget -q -O /etc/audit/rules.d/90-ism_audit.rules http://repo.example.com/configs/audit.rules
+cat << EOF > /etc/audit/rules.d/90-ism_audit.rules
+<%= snippet "config_GG_audit.rules" %>
+EOF
 chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
 
 # Enable the daemons
@@ -391,9 +395,12 @@ firewall-offline-cmd --remove service dhcpv6-client
 <%# ------------------------- ISSUE BANNER SECTION ----------------------------%>
 echo ">>> Set login banner"
 cat << EOF > /etc/issue
-######################################
-#  Issue Banner
-######################################
+
+###############################################################
+#  All connections to this system are monitored and recorded  #
+#  Disconnect IMMEDIATELY if you are not an authorized user!  #
+###############################################################
+
 EOF
 
 
