@@ -1,7 +1,0 @@
-<%#
-name: chef_client
-snippet: true
-model: ProvisioningTemplate
-%>
-echo "Bootstraping chef"
-<%= snippet_if_exists(@host.params['chef_bootstrap_template'] || 'chef-client omnibus bootstrap') %>
