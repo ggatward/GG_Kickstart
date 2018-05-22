@@ -1,0 +1,11 @@
+<%#
+name: CoreOS PXELinux
+snippet: false
+model: ProvisioningTemplate
+kind: PXELinux
+%>
+DEFAULT coreos
+
+LABEL coreos
+    KERNEL <%= @kernel %>
+    APPEND initrd=<%= @initrd %> cloud-config-url=<%= foreman_url('provision')%>

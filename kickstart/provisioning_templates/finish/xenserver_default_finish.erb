@@ -1,0 +1,8 @@
+<%#
+name: XenServer default finish
+snippet: false
+model: ProvisioningTemplate
+kind: finish
+%>
+#!/bin/bash
+/usr/bin/wget --output-document=/dev/null <%= foreman_url('built') %>

@@ -1,0 +1,18 @@
+<%#
+name: Restart Services - Katello SSH Default
+job_category: Katello
+description_format: Restart Services
+snippet: false
+template_inputs:
+- name: helper
+  required: true
+  input_type: user
+  description: A comma separated list of commands to run to restart services
+  advanced: false
+provider_type: SSH
+kind: job_template
+%>
+
+<%= input(:helper).split(",").map {|split| "#{split}" }.join("\n") %>
+
+katello-tracer-upload

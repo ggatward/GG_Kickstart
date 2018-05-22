@@ -1,0 +1,19 @@
+<%#
+name: GatwardIT_snippet_EPEL
+snippet: true
+model: ProvisioningTemplate
+%>
+
+<%
+  os_major = @host.operatingsystem.major.to_i
+%>
+
+echo ">>> Adding EPEL repo"
+rpm --import http://sat62.core.home.gatwards.org/pub/RPM-GPG/RPM-GPG-KEY-EPEL-<%= os_major %>
+cat << EOF > /etc/yum.repos.d/epel.repo
+[EPEL]
+name=EPEL 
+baseurl=https://sat62.core.home.gatwards.org/pulp/repos/GatwardIT/Library/custom/EPEL-<%= os_major %>/epel-<%= os_major %>-x86_64/
+enabled=1
+gpgcheck=1
+EOF

@@ -1,0 +1,60 @@
+#!ipxe
+<%#
+name: Boot disk iPXE - host
+snippet: false
+model: ProvisioningTemplate
+kind: Bootdisk
+%>
+
+# Example foreman_bootdisk host template
+# This template is rendered for use inside a host-specific boot disk.
+#
+# Copy this template to customize it, the original is read-only.
+
+<%
+interface = @host.provision_interface
+bootdisk_raise(N_('Host has no provisioning interface defined')) unless interface
+bootdisk_raise(N_('Host has no IP address defined')) if interface.ip.nil? || interface.ip.empty?
+bootdisk_raise(N_('Host has no subnet defined')) unless interface.subnet
+bootdisk_raise(N_('Host has no domain defined')) unless interface.domain
+%>
+
+echo Foreman Bootdisk: Host image (<%= @host.name %>)
+
+# loop over net* until the host's MAC matches
+<% (0..32).each do |i| -%>
+:net<%= i %>
+isset ${net<%= i -%>/mac} || goto no_nic
+echo net<%= i -%> is a ${net<%= i -%>/chip} with MAC ${net<%= i -%>/mac}
+iseq ${net<%= i -%>/mac} <%= interface.mac -%> || goto net<%= i+1 %>
+set idx:int32 <%= i %>
+goto loop_success
+<% end -%>
+
+:loop_success
+echo Configuring net${idx} for static IP address <%= interface.ip %>
+ifopen net${idx}
+set netX/ip <%= interface.ip %>
+set netX/netmask <%= interface.subnet.mask %>
+<% if interface.subnet.gateway.present? %>
+set netX/gateway <%= interface.subnet.gateway %>
+<% end %>
+ifstat net${idx}
+route
+
+<% if interface.subnet.dns_primary.present? %>
+# Note, iPXE can only use one DNS server
+echo Using DNS <%= interface.subnet.dns_primary %>
+set dns <%= interface.subnet.dns_primary %>
+set domain <%= interface.domain.to_s %>
+<% end %>
+
+# Chainload from Foreman rather than embedding OS info here, so the behaviour
+# is entirely dynamic.
+chain <%= bootdisk_chain_url %>
+exit 0
+
+:no_nic
+echo Cannot find interface with MAC <%= interface.mac %>
+sleep 30
+exit 1

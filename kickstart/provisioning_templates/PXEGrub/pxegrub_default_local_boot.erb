@@ -1,0 +1,12 @@
+<%#
+name: PXEGrub default local boot
+snippet: false
+model: ProvisioningTemplate
+kind: PXEGrub
+%>
+<%# Used to boot provisioned hosts, do not associate or change the name. %>
+
+default=0
+timeout=20
+
+<%= snippet "pxegrub_chainload" %>

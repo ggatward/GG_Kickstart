@@ -1,0 +1,16 @@
+#!/bin/bash
+<%#
+name: Grubby default
+snippet: false
+model: ProvisioningTemplate
+kind: script
+%>
+
+
+KERNEL="/boot/kernel"
+INITRD="/boot/initrd.img"
+
+wget -O "$KERNEL" "<%= @host.url_for_boot(:kernel) %>"
+wget -O "$INITRD" "<%= @host.url_for_boot(:initrd) %>"
+
+grubby --add-kernel=$KERNEL --initrd=$INITRD  --copy-default --title "<%= @host.operatingsystem %>" --make-default  --args="ks=<%= foreman_url('provision')%>"

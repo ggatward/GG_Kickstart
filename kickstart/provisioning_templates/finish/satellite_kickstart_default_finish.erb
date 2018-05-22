@@ -1,0 +1,61 @@
+<%#
+name: Satellite Kickstart Default Finish
+snippet: false
+model: ProvisioningTemplate
+kind: finish
+oses:
+- RedHat
+- RedHat_Enterprise_Linux_Atomic_Host
+%>
+<% if @host.subnet.respond_to?(:dhcp_boot_mode?) -%>
+<%= snippet 'kickstart_networking_setup' %>
+service network restart
+<% end -%>
+
+<%
+  rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+  os_major = @host.operatingsystem.major.to_i
+  pm_set = @host.puppetmaster.empty? ? false : true
+  puppet_enabled = pm_set || @host.params['force-puppet']
+  salt_enabled = @host.params['salt_master'] ? true : false
+  chef_enabled = @host.respond_to?(:chef_proxy) && @host.chef_proxy
+%>
+
+<%= snippet "subscription_manager_registration" %>
+
+<% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
+<%= snippet "idm_register" %>
+<% end -%>
+
+# update local time
+echo "updating system time"
+/usr/sbin/ntpdate -sub <%= @host.params['ntp-server'] || '0.fedora.pool.ntp.org' %>
+/usr/sbin/hwclock --systohc
+
+<% if @host.info['parameters']['realm'] && @host.realm && @host.realm.realm_type == 'Red Hat Identity Management' -%>
+<%= snippet "idm_register" %>
+<% end -%>
+
+# update all the base packages from the updates repository
+yum -t -y -e 0 update
+
+<%= snippet('remote_execution_ssh_keys') %>
+
+<% if chef_enabled %>
+<%= snippet 'chef_client' %>
+<% end -%>
+
+<% if puppet_enabled %>
+<%= snippet 'puppet_setup' %>
+<% end -%>
+
+<% if salt_enabled %>
+<%= snippet 'saltstack_setup' %>
+<% end -%>
+
+<% if host_param_true?('ansible_tower_provisioning') -%>
+<%= save_to_file('/root/ansible_provisioning_call.sh', snippet('ansible_tower_callback_script')) %>
+/root/ansible_provisioning_call.sh
+<% end -%>
+
+exit 0

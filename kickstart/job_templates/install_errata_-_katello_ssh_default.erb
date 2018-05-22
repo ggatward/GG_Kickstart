@@ -1,0 +1,21 @@
+<%#
+name: Install Errata - Katello SSH Default
+job_category: Katello
+description_format: Install errata %{errata}
+snippet: false
+template_inputs:
+- name: errata
+  required: true
+  input_type: user
+  description: A comma separated list of errata to install
+  advanced: false
+foreign_input_sets:
+- exclude: action,package
+  include_all: true
+  template: Install Errata - Katello SSH Default
+provider_type: SSH
+kind: job_template
+%>
+
+<% advisories = input(:errata).split(',').map { |e| "--advisory=#{e}" }.join(' ') %>
+<%= render_template('Package Action - SSH Default', :action => 'update-minimal', :package => advisories) %>

@@ -1,0 +1,18 @@
+<%#
+name: saltstack_minion
+snippet: true
+model: ProvisioningTemplate
+%>
+master: <%= @host.params['salt_master'] %>
+log_level: warning
+
+<%#
+# Grains (http://docs.saltstack.com/en/latest/topics/targeting/grains.html#grains-in-the-minion-config)
+#
+# Possible parameters are:
+#
+# * {'cluster': 'alpha'}
+# * {'roles': ['webserver', 'frontend']}
+#
+%>
+grains: <%= @host.params['salt_grains'] ? @host.params['salt_grains'] : '{}' %>

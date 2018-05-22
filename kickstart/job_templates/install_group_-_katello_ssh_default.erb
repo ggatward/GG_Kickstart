@@ -1,0 +1,14 @@
+<%#
+name: Install Group - Katello SSH Default
+job_category: Katello
+description_format: Install package group(s) %{package}
+snippet: false
+foreign_input_sets:
+- exclude: action
+  include_all: true
+  template: Install Group - Katello SSH Default
+provider_type: SSH
+kind: job_template
+%>
+
+<%= render_template('Package Action - SSH Default', :action => 'group install') %>

@@ -1,0 +1,42 @@
+<%#
+name: Discovery Red Hat kexec
+snippet: false
+model: ProvisioningTemplate
+kind: kexec
+oses:
+- RedHat
+- RedHat_Enterprise_Linux_Atomic_Host
+%>
+<%#
+This template is used to pass command line options to kexec when reloading
+kernel on a discovered host instead of rebooting. This is useful in PXE-less
+environments. The template must generate JSON format with the following items
+"kernel", "initram", "append" and "extra". The kexec command is composed in
+the following way:
+
+kexec --force --reset-vga --append=$append --initrd=$initram $extra $kernel
+
+Please read kexec(8) man page for more information about semantics.
+-%>
+<%
+  mac = @host.facts['discovery_bootif']
+  bootif = '00-' + mac.gsub(':', '-') if mac
+  ip_cidr = @host.facts['discovery_ip_cidr']
+  ip = @host.facts['discovery_ip']
+  mask = @host.facts['discovery_netmask']
+  gw = @host.facts['discovery_gateway']
+  dns = @host.facts['discovery_dns']
+  append = @host.facts['append']
+-%>
+{
+  "comment": "WARNING: Both kernel and initram are not set in preview mode due to http://projects.theforeman.org/issues/19737",
+  "kernel": "<%= @kexec_kernel %>",
+  "initram": "<%= @kexec_initrd %>",
+<% if (@host.operatingsystem.name == 'Fedora' and @host.operatingsystem.major.to_i > 16) or
+    (@host.operatingsystem.name != 'Fedora' and @host.operatingsystem.major.to_i >= 7) -%>
+  "append": "ks=<%= foreman_url('provision') + "&static=yes" %> inst.ks.sendmac <%= "ip=#{ip}::#{gw}:#{mask}:::none nameserver=#{dns} ksdevice=bootif BOOTIF=#{bootif} nomodeset #{append}" %>",
+<% else -%>
+  "append": "ks=<%= foreman_url('provision') + "&static=yes" %> kssendmac nicdelay=5 <%= "ip=#{ip} netmask=#{mask} gateway=#{gw} dns=#{dns} ksdevice=#{mac} BOOTIF=#{bootif} nomodeset #{append}" %>",
+<% end -%>
+  "extra": ["--args-linux"]
+}

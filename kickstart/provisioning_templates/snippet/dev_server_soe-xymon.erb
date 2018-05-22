@@ -1,0 +1,38 @@
+<%#
+name: dev_Server_SOE-xymon
+snippet: true
+model: ProvisioningTemplate
+%>
+
+echo "Start xymon install"
+
+<%# Install and configure xymon-client package -%>
+yum install -q -y xymon-client
+
+# Add correct xymon server to config file
+/bin/sed -i 's/^XYMSRV=".*"/XYMSRV="192.168.111.196"/g' /opt/xymon/client/etc/xymonclient.cfg
+
+# Alter initial messages log permissions for Xymon
+chmod 0640 /var/log/messages
+chown root:daemon /var/log/messages
+
+
+#Create custom logrotate to preserve the permissions for Xymon
+cat > /etc/logrotate.d/messages << EOL
+/var/log/messages
+{
+    sharedscripts
+    create 0640 root daemon
+    postrotate
+	/bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true
+    endscript
+}
+EOL
+
+#Change permissions and update selinux user for logrotate file to same as other logrotate.d files
+chmod 0644 /etc/logrotate.d/messages
+chcon -u system_u -t etc_t /etc/logrotate.d/messages
+
+echo "Finish xymon install"
+<%# End Install and configure xymon-client package -%>
+
