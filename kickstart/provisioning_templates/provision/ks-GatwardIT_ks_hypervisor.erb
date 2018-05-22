@@ -1,6 +1,6 @@
 <%#
 kind: provision
-name: GatwardIT_ks_hypervisor
+name: ks_hypervisor
 oses:
 - Red Hat Enterprise Linux 7
 %>
@@ -13,7 +13,7 @@ oses:
   ipv6_disabled = @host.params['ipv6_disabled'] ? true : false
   auth_ldap = @host.params['auth_ldap'] ? true : false
   auth_ad = @host.params['auth_ad'] ? true : false
-  enable_gui = @host.params['enable_gui'] ? true : false  
+  enable_gui = @host.params['enable_gui'] ? true : false
   section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
 %>
 install
@@ -142,7 +142,7 @@ EOF
 
 subscription-manager repos --enable rh-gluster-3-for-rhel-7-server-rpms
 yum -y install glusterfs-server
-systemctl enable glusterd 
+systemctl enable glusterd
 sed -i '/option event-threads 1/a\ \ \ \ option rpc-auth-allow-insecure on' /etc/glusterfs/glusterd.vol
 sed -i 's/option ping-timeout.*/option ping-timeout 10/' /etc/glusterfs/glusterd.vol
 
@@ -194,5 +194,3 @@ wget -q -O /dev/null --no-check-certificate <%= foreman_url('built') %>
 exit 0
 
 <%= section_end -%>
-
-
