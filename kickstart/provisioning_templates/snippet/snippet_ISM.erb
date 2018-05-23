@@ -1,6 +1,6 @@
 <%#
 kind: snippet
-name: snippet_GG_ISM
+name: GatwardIT-snippet_ISM
 %>
 echo "+++++++++++++++++++++++++ ISM Hardening Snippet +++++++++++++++++++++++++++++++"
 
@@ -14,7 +14,7 @@ systemctl disable postfix.service
 <%# ----------------------- KERNEL TUNING SECTION -----------------------------%>
 echo ">>> Kernel tuning parameters"
 cat << EOF > /etc/sysctl.conf
-<%= snippet "config_GG_sysctl.conf" %>
+<%= snippet "GatwardIT-config_sysctl.conf" %>
 EOF
 
 <%# Remove kernel exec-shield from sysctl.conf as it is no longer a tuning option
@@ -187,7 +187,7 @@ sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/a
 
 # Load the audit rules
 cat << EOF > /etc/audit/rules.d/90-ism_audit.rules
-<%= snippet "config_GG_audit.rules" %>
+<%= snippet "GatwardIT-config_audit.rules" %>
 EOF
 chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
 
@@ -445,7 +445,7 @@ fi
 
 <%# ------------------------- ANTIVIRUS SECTION ----------------------------%>
 <% if @host.params['sophos'] %>
-  <%= snippet "snippet_GG_sophos" %>
+  <%= snippet "GatwardIT-snippet_sophos" %>
 <% end %>
 
 
