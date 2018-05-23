@@ -44,10 +44,10 @@ name: GatwardIT-snippet_idm_register
 ##
 ## IDM Client Installation
 ##
-<% if host.param['idm_server'] -%>
-<% domain = host.param['idm_domain'] || @host.realm.name.downcase -%>
+<% if host_param['idm_server'] -%>
+<% domain = host_param['idm_domain'] || @host.realm.name.downcase -%>
 
-idm_server="--server <%= host.param['idm_server'] %> --domain <%=domain %>"
+idm_server="--server <%= host_param['idm_server'] %> --domain <%=domain %>"
 <% end -%>
 
 <% unless host.param_false? 'idm_mkhomedir' %>
@@ -58,8 +58,8 @@ idm_mkhomedir="--mkhomedir"
 idm_ssh="--no-ssh"
 <% end -%>
 
-<% if host.param['idm_opts'] -%>
-idm_opts="<%= host.param['idm_opts'] %>"
+<% if host_param['idm_opts'] -%>
+idm_opts="<%= host_param['idm_opts'] %>"
 <% end -%>
 
 # One-time password will be requested at install time. Otherwise, $HOST[OTP] is used as a placeholder value.
@@ -69,8 +69,8 @@ idm_opts="<%= host.param['idm_opts'] %>"
 ## Automounter
 ##
 
-<% if host.param['idm_automount_location'] -%>
-automount_location="--location <%= host.param['idm_automount_location'] %>"
+<% if host_param['idm_automount_location'] -%>
+automount_location="--location <%= host_param['idm_automount_location'] %>"
 <% end -%>
 
 <% if host.param_true? 'idm_automount' -%>
@@ -114,9 +114,9 @@ then
   # Modify sssd.conf for sssd <1.11 (RHEL <6.6)
   if [ $sssd_minor -lt 11 ] || [ $sssd_major -lt 1 ]
   then
-    <% if host.param['idm_server'] -%>
-    ldap_uri=", ldap://<%= host.param['idm_server'] %>"
-    krb5_server=<%= host.param['idm_server'] %>
+    <% if host_param['idm_server'] -%>
+    ldap_uri=", ldap://<%= host_param['idm_server'] %>"
+    krb5_server=<%= host_param['idm_server'] %>
     <% else -%>
     krb5_server="_srv_"
     <% end -%>

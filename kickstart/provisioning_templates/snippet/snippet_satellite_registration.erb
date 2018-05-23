@@ -5,7 +5,7 @@ name: GatwardIT-snippet_satellite_registration
 echo "++++++++++++++++++ Red Hat Satellite registration Snippet +++++++++++++++++++++++++++++++++++"
 
 <%# Subscription manager registration snippet, customized for environment -%>
-<% if host.param['kt_activation_keys'] %>
+<% if host_param['kt_activation_keys'] %>
 
   echo ">>> Install Satellite Certificates"
   rpm -ivh <%= subscription_manager_configuration_url(@host) %>
@@ -17,7 +17,7 @@ echo "++++++++++++++++++ Red Hat Satellite registration Snippet ++++++++++++++++
 
   echo ">>> Registering the system to Satellite"
   sleep $((RANDOM % 15))
-  subscription-manager register --org="<%= @host.rhsm_organization_label %>" --name="<%= @host.name %>" --activationkey="<%= host.param['kt_activation_keys'] %>"
+  subscription-manager register --org="<%= @host.rhsm_organization_label %>" --name="<%= @host.name %>" --activationkey="<%= host_param['kt_activation_keys'] %>"
 
   sleep 10
   subscription-manager attach --auto
