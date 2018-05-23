@@ -409,7 +409,7 @@ echo ">>> Setup SELinux"
 # Add selinux=1 kernel option
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb selinux=1 enforcing=1/}' /etc/default/grub
 
-<%# unless host_param_true?('server_gui') -%>
+<% unless host_param_true?('server_gui') -%>
   /usr/sbin/setsebool -P deny_ptrace 1
   /usr/sbin/setsebool -P guest_exec_content 0
   /usr/sbin/setsebool -P xguest_exec_content 0
