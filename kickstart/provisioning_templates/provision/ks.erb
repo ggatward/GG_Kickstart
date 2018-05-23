@@ -10,7 +10,7 @@ oses:
   os_major = @host.operatingsystem.major.to_i
   # safemode renderer does not support unary negation
   pm_set = @host.puppetmaster.empty? ? false : true
-  puppet_enabled = pm_set || @host.params['force-puppet']
+  puppet_enabled = pm_set || host_param('force-puppet')
   section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
 %>
 install
@@ -32,7 +32,7 @@ network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{sub
 rootpw --iscrypted <%= root_pass %>
 firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
 authconfig --useshadow --passalgo=sha512 --kickstart
-timezone --utc <%= @host.params['time-zone'] || 'Australia/Sydney' %>
+timezone --utc <%= host_param('time-zone') || 'Australia/Sydney' %>
 
 bootloader --location=mbr --append="nofb quiet splash=quiet" <%= grub_pass %>
 
@@ -107,7 +107,7 @@ exec < /dev/tty3 > /dev/tty3
 echo "++++++++++++++++++++++++++++ Setting System Time ++++++++++++++++++++++++++++++"
 echo ">>> Updating system time & setting BIOS clock"
 yum -q -y install ntpdate
-ntpdate -sub <%= @host.params['ntp-server'] || 'ntp1.core.home.gatwards.org ntp2.core.home.gatwards.org' %>
+ntpdate -sub <%= host_param('ntp-server') || 'ntp1.core.home.gatwards.org ntp2.core.home.gatwards.org' %>
 hwclock --systohc
 
 <%# Fix NTP sources %>
@@ -160,12 +160,12 @@ fi
 <% end -%>
 
 <%# If we are part of an AD domain, enrol here -%>
-<% if @host.params['ad'] -%>
+<% if host_param('ad') -%>
   <%= snippet "GatwardIT-snippet_AD" %>
 <% end -%>
 
 <%# If we are part of an LDAP environment, bind to LDAP here -%>
-<% if @host.params['ldap'] -%>
+<% if host_param('ldap') -%>
   <%= snippet "GatwardIT-snippet_LDAP" %>
 <% end -%>
 
@@ -189,7 +189,7 @@ fi
 <% end -%>
 
 <%# If the 'nessus_agent' host parameter is defined, install the Nessus Scanner Agent %>
-<% if @host.params['nessus_agent'] -%>
+<% if host_param('nessus_agent') -%>
   <%= snippet "GatwardIT-snippet_nessus" %>
 <% end -%>
 

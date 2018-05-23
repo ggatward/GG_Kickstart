@@ -12,7 +12,7 @@ yum -q -y install NessusAgent
 
 <%# Register agent %>
 if [ "<%= @host.hostgroup %>" == "MYORG/HOSTGROUP1" ]; then
-  /opt/nessus_agent/sbin/nessuscli agent link --key=sajdfkjadfjauh9ht935guhbndsjbvwb45hg --host=<%= @host.params['nessus_host'] %> --port=443 --groups='Linux Servers'
+  /opt/nessus_agent/sbin/nessuscli agent link --key=sajdfkjadfjauh9ht935guhbndsjbvwb45hg --host=<%= host_param('nessus_host') %> --port=443 --groups='Linux Servers'
 else
-  /opt/nessus_agent/sbin/nessuscli agent link --key=sajdfkjadfjauh9ht935guhbndsjbvwb45hg --host=<%= @host.params['nessus_host'] %> --port=443 --groups='Other Servers'
+  /opt/nessus_agent/sbin/nessuscli agent link --key=sajdfkjadfjauh9ht935guhbndsjbvwb45hg --host=<%= host_param('nessus_host') %> --port=443 --groups='Other Servers'
 fi

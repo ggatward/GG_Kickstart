@@ -18,27 +18,27 @@ cat > /etc/realmd.conf << EOF
   default-shell = /bin/bash
 
 # Don't allow AD to control access
-[<%= @host.params['ad'].downcase %>]
+[<%= host_param('ad').downcase %>]
   manage-system = no
   # We must disable auto-mapping so that AD defined UID/GID are set
   automatic-id-mapping = no
 EOF
 
 echo ">>>>>>>>>>>>>>>>>>>>>>> Ignore any password prompts here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-<% if @host.params['ad'] == 'AD.HOME.GATWARDS.ORG' -%>
-  echo '<%= @host.params['ad_join_passwd']%>' | realm join -U <%= @host.params['ad_join_user'] %> -v <%= @host.params['ad'] %> --unattended --install=/ --computer-ou="ou=Linux Servers,dc=ad,dc=home,dc=gatwards,dc=org"
+<% if host_param('ad') == 'AD.HOME.GATWARDS.ORG' -%>
+  echo '<%= host_param('ad_join_passwd')%>' | realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad') %> --unattended --install=/ --computer-ou="ou=Linux Servers,dc=ad,dc=home,dc=gatwards,dc=org"
 <% else -%>
-  echo '<%= @host.params['ad_join_passwd']%>' | realm join -U <%= @host.params['ad_join_user'] %> -v <%= @host.params['ad'] %> --unattended --install=/
+  echo '<%= host_param('ad_join_passwd')%>' | realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad') %> --unattended --install=/
 <% end -%>
 # Allow any AD user to login - we can control access through access.conf if we need to
 echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
 
 # Update sssd confug for AD
-sed -i '/services = nss, pam/a default_domain_suffix = <%= @host.params['ad'].downcase %>' /etc/sssd/sssd.conf
+sed -i '/services = nss, pam/a default_domain_suffix = <%= host_param('ad').downcase %>' /etc/sssd/sssd.conf
 sed -i 's/fallback_homedir.*/fallback_homedir = \/home\/%u/' /etc/sssd/sssd.conf
-sed -i '/default_domain_suffix = <%= @host.params['ad'].downcase %>/a full_name_format = %1$s' /etc/sssd/sssd.conf
+sed -i '/default_domain_suffix = <%= host_param('ad').downcase %>/a full_name_format = %1$s' /etc/sssd/sssd.conf
 
-<% if @host.params['ad'] == 'AD.HOME.GATWARDS.ORG' -%>
+<% if host_param('ad') == 'AD.HOME.GATWARDS.ORG' -%>
   cat << EOF > /etc/sudoers.d/domainusers
 %linuxadmins   ALL=(ALL)  ALL
 %linuxadmins   ALL=(ALL)  NOPASSWD: /bin/mount, /bin/umount

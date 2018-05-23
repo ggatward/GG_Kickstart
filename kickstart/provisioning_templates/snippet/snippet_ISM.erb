@@ -221,7 +221,7 @@ sed -i 's/\*.info.*/\*.info;mail.none;authpriv.none;cron.none;local0.none     \/
 # Configure rsyslog to forward logs to external server
 sed -i 's/#$ModLoad imklog/$ModLoad imklog/g' /etc/rsyslog.conf
 sed -i 's/#$ModLoad immark/$ModLoad immark/g' /etc/rsyslog.conf
-echo "*.* @@<%= @host.params['syslog_server'] %>:514" >> /etc/rsyslog.conf
+echo "*.* @@<%= host_param('syslog_server') %>:514" >> /etc/rsyslog.conf
 systemctl enable rsyslog
 
 
@@ -444,7 +444,7 @@ fi
 
 
 <%# ------------------------- ANTIVIRUS SECTION ----------------------------%>
-<% if @host.params['sophos'] %>
+<% if host_param('sophos') %>
   <%= snippet "GatwardIT-snippet_sophos" %>
 <% end %>
 
@@ -461,7 +461,7 @@ fi
   for slot in 1 2 3 4 5 6 7; do
     luksmeta wipe -d ${cryptdev} -s ${slot} -f
   done
-  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang1.core.home.gatwards.org","thp":"<%= @host.params['luks-tang-key1'] %>"}' <<< <%= @host.params['luks-passphrase'] %>
-  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang2.core.home.gatwards.org","thp":"<%= @host.params['luks-tang-key2'] %>"}' <<< <%= @host.params['luks-passphrase'] %>
-#  cryptsetup luksRemoveKey ${cryptdev} - <<< <%= @host.params['luks-passphrase'] %>
+  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang1.core.home.gatwards.org","thp":"<%= host_param('luks-tang-key1') %>"}' <<< <%= host_param('luks-passphrase') %>
+  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://tang2.core.home.gatwards.org","thp":"<%= host_param('luks-tang-key2') %>"}' <<< <%= host_param('luks-passphrase') %>
+#  cryptsetup luksRemoveKey ${cryptdev} - <<< <%= host_param('luks-passphrase') %>
 <% end %>

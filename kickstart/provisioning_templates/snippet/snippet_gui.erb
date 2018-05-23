@@ -173,7 +173,7 @@ chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
 # Copy global default configuration
 mkdir -p /etc/skel/.ICAClient/cache/Stores
 cat << EOF > /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
-<%= snippet "config_GG_citrix" %>
+<%= snippet "GatwardIT-config_citrix" %>
 EOF
 chmod 644 /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
 
