@@ -83,7 +83,7 @@ chmod +x /etc/X11/xinit/scripts/*
 ln -s /etc/X11/xinit/scripts/xwarn.sh /etc/X11/xinit/xinitrc.d/xwarn.sh
 
 <%# Configure XRDP %>
-<% if @host_param_true?('xrdp') -%>
+<% if host_param_true?('xrdp') -%>
   echo ">>> Installing xrdp packages..."
   yum -q -y install xrdp xrdp-selinux
   systemctl enable xrdp

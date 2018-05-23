@@ -273,9 +273,9 @@ for PAMFILE in /etc/pam.d/password-auth /etc/pam.d/system-auth; do
 
   ## For systems that use local home directories e.g DMZ we use oddjobd to mount home directories
   # We will only add the pam_oddjob_mkhomedir.so if localhome parameter exists
-  <% if @host_param_true?('localhomedirs') -%>
+  <% if host_param_true?('localhomedirs') %>
     sed -i '/.*session\s*optional\s*pam_systemd.so.*$/asession     optional     pam_oddjob_mkhomedir.so umask=0077' ${PAMFILE}
-  <% end -%>
+  <% end %>
 
 done
 
@@ -450,9 +450,8 @@ fi
 
 
 <%# ---------------------- DISK ENCRYPTION SECTION ----------------------------%>
-<%# On physical servers we need to encrypt the disk. We use the Clevis client to connect to
-the Network Bound Disk Encryption (NBDE) 'Tang' service to do this -%>
-<% if @host_param_true?('luks') -%>
+<%# On physical servers we need to encrypt the disk. We use the Clevis client to connect to the Network Bound Disk Encryption (NBDE) 'Tang' service to do this %>
+<% if host_param_true?('luks') %>
   echo ">>> Configuring Clevis NBDE"
   # Determine the crypt block device
   cryptdev=$(for i in $(lsblk -l --output NAME); do if [ $(cryptsetup isLuks /dev/$i 2>/dev/null; echo $?) -eq 0 ]; then echo /dev/$i; fi; done)
