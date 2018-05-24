@@ -9,8 +9,7 @@ If localhomedirs is 'true', only local directories are used, oddjobd is used to 
 If localhomedirs does not exist or is 'false' then autofs is enabled and nfs home directories are used.
 NOTE - This needs fixing if IPA is implemented as the IPA client implements autohomes
 %>
-echo "
-+++++++++++++++++++++ Home directory configuration Snippet ++++++++++++++++++++"
+echo "+++++++++++++++++++++ Home directory configuration Snippet ++++++++++++++++++++"
 
 <% if host_param_true?('localhomedirs') -%>
   # Install required additional packages

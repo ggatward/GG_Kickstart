@@ -169,8 +169,10 @@ fi
   <%= snippet "GatwardIT-snippet_LDAP" %>
 <% end -%>
 
-<%# Configure either local or autofs home directories %>
-<%= snippet "GatwardIT-snippet_homedirs" %>
+<%# Configure either local or autofs home directories (IdM snippet handles this if IPA is used) %>
+<% if host_param('ad') || host_param('ldap') -%>
+  <%= snippet "GatwardIT-snippet_homedirs" %>
+<% end %>
 
 <%# Install root CA certs %>
 <%= snippet "GatwardIT-snippet_trust_certs" %>
