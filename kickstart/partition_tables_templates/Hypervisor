@@ -1,3 +1,9 @@
+<%#
+kind: ptable
+name: GatwardIT-Hypervisor
+oses:
+- RedHat
+%>
 #Dynamic
 <% if @host.operatingsystem.major.to_i > 6 %>
   <% fstype = "xfs" %>
@@ -26,4 +32,3 @@ echo logvol /var/log/audit --fstype <%= fstype %> --name=audit --vgname=vg_sys -
 <% if @host.params['ptable'] %>
   <%= snippet "ptable-#{@host.params['ptable']}" %>
 <% end %>
-

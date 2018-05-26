@@ -1,0 +1,62 @@
+<%#
+kind: ptable
+name: GatwardIT-RHEL_Generic
+oses:
+- CentOS
+- RedHat
+%>
+#Dynamic
+<% if @host.operatingsystem.major.to_i > 6 %>
+  <% fstype = "xfs" %>
+<% else %>
+  <% fstype = "ext4" %>
+<% end %>
+
+#get the actual memory installed on the system and divide by 1024 to get it in MB
+act_mem=$((`grep MemTotal: /proc/meminfo | sed 's/^MemTotal: *//'|sed 's/ .*//'` / 1024))
+if [ "$act_mem" -lt 2048 ]; then
+    vir_mem=$(($act_mem * 2))
+elif [ "$act_mem" -gt 2048 -a "$act_mem" -lt 8192 ]; then
+    vir_mem=$act_mem
+elif [ "$act_mem" -gt 8192 -a "$act_mem" -lt 65536 ]; then
+    vir_mem=$(($act_mem / 2))
+else
+    vir_mem=4096
+fi
+
+PRI_DISK=$(awk '/[v|s]da|c0d0/ {print $4 ;exit}' /proc/partitions)
+grep -E -q '[v|s]db|c1d1' /proc/partitions  &&  SEC_DISK=$(awk '/[v|s]db|c1d1/ {print $4 ;exit}' /proc/partitions)
+grep -E -q '[v|s]db1|c1d1p1' /proc/partitions  &&  EXISTING="true"
+
+<% if host_param_true('luks') -%>
+  cryptsetup isLuks /dev/${PRI_DISK} && dd if=/dev/zero of=/dev/${PRI_DISK} bs=512 count=2097152
+<% end %>
+
+echo zerombr >> /tmp/diskpart.cfg
+echo clearpart --drives ${PRI_DISK} --all --initlabel >> /tmp/diskpart.cfg
+echo part /boot --fstype <%= fstype %> --size=512 --ondisk=${PRI_DISK} --asprimary >> /tmp/diskpart.cfg
+
+<% if host_param_true('luks') -%>
+  echo part pv.01 --size=1 --grow --ondisk=${PRI_DISK} --encrypted --passphrase=<%= @host.params['luks-passphrase'] %> >> /tmp/diskpart.cfg
+<% else %>
+  echo part pv.01 --size=1 --grow --ondisk=${PRI_DISK} >> /tmp/diskpart.cfg
+<% end %>
+
+echo volgroup vg_sys --pesize=32768 pv.01 >> /tmp/diskpart.cfg
+
+echo logvol / --fstype <%= fstype %> --name=lv_root --vgname=vg_sys --size=4096 --fsoptions="noatime" >> /tmp/diskpart.cfg
+echo logvol swap --fstype swap --name=lv_swap --vgname=vg_sys --size=${vir_mem} >> /tmp/diskpart.cfg
+<% if host_param_true?('localhomedirs') -%>
+  echo logvol /home --fstype <%= fstype %> --name=lv_home --vgname=vg_sys --size=10240 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
+<% else %>
+  echo logvol /home --fstype <%= fstype %> --name=lv_home --vgname=vg_sys --size=256 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
+<% end %>
+echo logvol /tmp --fstype <%= fstype %> --name=lv_tmp --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev,noexec" >> /tmp/diskpart.cfg
+echo logvol /var --fstype<%= fstype %> --name=lv_var --vgname=vg_sys --size=5120 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
+echo logvol /var/log/ --fstype <%= fstype %> --name=lv_log --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev,noexec" >> /tmp/diskpart.cfg
+echo logvol /var/log/audit --fstype <%= fstype %> --name=lv_audit --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev,noexec" >> /tmp/diskpart.cfg
+
+# Include additional partition snippets defined by host 'ptable' parameter
+<% if @host.params['ptable'] %>
+  <%=  snippet "ptable-#{@host.params['ptable']}" %>
+<% end %>
