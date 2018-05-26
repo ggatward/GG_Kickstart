@@ -4,31 +4,19 @@ name: GatwardIT-Hypervisor
 oses:
 - RedHat
 %>
-#Dynamic
-<% if @host.operatingsystem.major.to_i > 6 %>
-  <% fstype = "xfs" %>
-<% else %>
-  <% fstype = "ext4" %>
-<% end %>
 
+zerombr
+clearpart --drives sda --all --initlabel
 
-PRI_DISK=$(awk '/[v|s]da|c0d0/ {print $4 ;exit}' /proc/partitions)
-grep -E -q '[v|s]db|c1d1|md' /proc/partitions && SEC_DISK=$(awk '/[v|s]db|c1d1|md/ {print $4 ;exit}' /proc/partitions)
-grep -E -q '[v|s]db1|c1d1p1|md' /proc/partitions && EXISTING="true"
-echo zerombr >> /tmp/diskpart.cfg
-echo clearpart --drives ${PRI_DISK} --all --initlabel >> /tmp/diskpart.cfg
-echo part /boot --fstype <%= fstype %> --size=1024 --ondisk=${PRI_DISK} --asprimary >> /tmp/diskpart.cfg
-echo part pv.01 --size=1 --grow --ondisk=${PRI_DISK} >> /tmp/diskpart.cfg
-echo volgroup vg_sys --pesize=32768 pv.01 >> /tmp/diskpart.cfg
-echo logvol / --fstype <%= fstype %> --name=root --vgname=vg_sys --size=10240 --fsoptions="noatime" >> /tmp/diskpart.cfg
-echo logvol swap --fstype swap --name=swap --vgname=vg_sys --size=4096 >> /tmp/diskpart.cfg
-echo logvol /home --fstype <%= fstype %> --name=home --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
-echo logvol /tmp --fstype <%= fstype %> --name=tmp --vgname=vg_sys --size=6144 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
-echo logvol /var --fstype <%= fstype %> --name=var --vgname=vg_sys --size=20480 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
-echo logvol /var/log/ --fstype <%= fstype %> --name=log --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
-echo logvol /var/log/audit --fstype <%= fstype %> --name=audit --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
+part /boot --fstype xfs --size=1024 --ondisk=sda --asprimary
+part pv.01 --size=1 --grow --ondisk=sda
 
-# Include additional partition snippets defined by host 'ptable' parameter
-<% if @host.params['ptable'] %>
-  <%= snippet "ptable-#{@host.params['ptable']}" %>
-<% end %>
+volgroup vg_sys --pesize=32768 pv.01
+
+logvol / --fstype xfs --name=root --vgname=vg_sys --size=10240 --fsoptions="noatime"
+logvol swap --fstype swap --name=swap --vgname=vg_sys --size=4096 >> /tmp/diskpart.cfg
+logvol /home --fstype xfs --name=home --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev"
+logvol /tmp --fstype xfs --name=tmp --vgname=vg_sys --size=6144 --fsoptions="noatime,nosuid,nodev"
+logvol /var --fstype xfs --name=var --vgname=vg_sys --size=20480 --fsoptions="noatime,nosuid,nodev"
+logvol /var/log/ --fstype xfs --name=log --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/log/audit --fstype xfs --name=audit --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev,noexec"

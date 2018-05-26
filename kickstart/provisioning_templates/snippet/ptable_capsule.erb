@@ -1,0 +1,21 @@
+<%#
+kind: snippet
+name: GatwardIT-ptable_capsule
+%>
+
+<%# Partition Table extension for Satellite 6 Capsule %>
+
+<% if @host.operatingsystem.major.to_i > 6 %>
+ <% fstype = "xfs" %>
+<% else %>
+ <% fstype = "ext4" %>
+<% end %>
+if [[ -z ${EXISTING} ]]; then
+  echo volgroup vg_sat6 --pesize=32768 pv.130 >> /tmp/diskpart.cfg
+  echo part pv.130 --fstype="lvmpv" --size=1 --grow --ondisk=${SEC_DISK} >> /tmp/diskpart.cfg
+  echo logvol /var/lib/mongodb --fstype <%= fstype %> --name=mongodb --vgname=vg_sat6 --size=20480 --fsoptions="noatime,nodev,nosuid" >> /tmp/diskpart.cfg
+  echo logvol /var/lib/pulp --fstype <%= fstype %> --name=pulp --vgname=vg_sat6 --size=1 --grow --fsoptions="noatime,nodev,nosuid" >> /tmp/diskpart.cfg
+elif [[ -n ${SEC_DISK} ]]; then
+  echo logvol /var/lib/mongodb --fstype <%= fstype %> --name=mongodb --vgname=vg_data --size=20480 --fsoptions="noatime,nodev,nosuid" --noformat >> /tmp/diskpart.cfg
+  echo logvol /var/lib/pulp --fstype <%= fstype %> --name=pulp --vgname=vg_sat6 --size=1 --grow --fsoptions="noatime,nodev,nosuid" --noformat >> /tmp/diskpart.cfg
+fi

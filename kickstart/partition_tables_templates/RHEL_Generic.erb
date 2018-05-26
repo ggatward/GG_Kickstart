@@ -58,5 +58,5 @@ echo logvol /var/log/audit --fstype <%= fstype %> --name=lv_audit --vgname=vg_sy
 
 # Include additional partition snippets defined by host 'ptable' parameter
 <% if @host.params['ptable'] %>
-  <%=  snippet "ptable-#{@host.params['ptable']}" %>
+  <%=  snippet "GatwardIT-ptable_#{@host.params['ptable']}" %>
 <% end %>
