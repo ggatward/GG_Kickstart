@@ -211,9 +211,9 @@ sed -i 's/#ForwardToSyslog=yes/ForwardToSyslog=yes/g' /etc/systemd/journald.conf
 # Logging journal and audit events to syslog overflows the rate limits - turn them off
 sed -i 's/#RateLimitInterval=.*/RateLimitInterval=0/' /etc/systemd/journald.conf
 sed -i 's/#RateLimitBurst=.*/RateLimitBurst=0/' /etc/systemd/journald.conf
-sed -i 's/#### GLOBAL/a$imjournalRatelimitInterval 0' /etc/rsyslog.conf
-sed -i 's/#### GLOBAL/a$imjournalRatelimitBurst 0' /etc/rsyslog.conf
-sed -i 's/#### GLOBAL/a# Disable Rate Limiting' /etc/rsyslog.conf
+sed -i '/#### GLOBAL/a$imjournalRatelimitInterval 0' /etc/rsyslog.conf
+sed -i '/#### GLOBAL/a$imjournalRatelimitBurst 0' /etc/rsyslog.conf
+sed -i '/#### GLOBAL/a# Disable Rate Limiting' /etc/rsyslog.conf
 
 # Suppress LOCAL0 messages (audit) from printing to the messages file
 sed -i 's/\*.info.*/\*.info;mail.none;authpriv.none;cron.none;local0.none     \/var\/log\/messages/g' /etc/rsyslog.conf
@@ -221,7 +221,9 @@ sed -i 's/\*.info.*/\*.info;mail.none;authpriv.none;cron.none;local0.none     \/
 # Configure rsyslog to forward logs to external server
 sed -i 's/#$ModLoad imklog/$ModLoad imklog/g' /etc/rsyslog.conf
 sed -i 's/#$ModLoad immark/$ModLoad immark/g' /etc/rsyslog.conf
-echo "*.* @@<%= host_param('syslog_server') %>:514" >> /etc/rsyslog.conf
+<% if host_param('syslog_server') -%>
+  echo "*.* @@<%= host_param('syslog_server') %>:514" >> /etc/rsyslog.conf
+<% end -%>
 systemctl enable rsyslog
 
 
@@ -312,9 +314,8 @@ cat >> /etc/sysctl.conf << EOL
 #
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.${ETH_INF}.disable_ipv6 = 1
 EOL
-for ETH_INF in $(ls -1 /sys/class/net | grep -v lo); do
+for ETH_INF in $(ls -1 /sys/class/net); do
   echo "net.ipv6.conf.${ETH_INF}.disable_ipv6 = 1" >> /etc/sysctl.conf
 done
 
@@ -324,9 +325,6 @@ sysctl -p /etc/sysctl.conf >/dev/null
 <%# Clean up other things %>
 <%# 1. Comment IPv6 loopback address from /etc/hosts %>
 sed -i 's/^[[:space:]]*::/#::/' /etc/hosts
-
-<%# 2. Disable ip6tables %>
-chkconfig ip6tables off
 
 <%# 3. Disable NFS services listening on IPv6 sockets %>
 sed -i 's/ v     inet6 / -     inet6 /g' /etc/netconfig
@@ -389,7 +387,7 @@ EOL
 fi
 
 <%# Remove the DHCPv6 client listener firewall rule %>
-firewall-offline-cmd --remove service dhcpv6-client
+firewall-offline-cmd --remove-service dhcpv6-client
 
 
 <%# ------------------------- ISSUE BANNER SECTION ----------------------------%>
@@ -422,14 +420,14 @@ sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb selinux=1 enforcing=1/}' /etc/defaul
 
 <%# Disable three-finger-salute reboot activation %>
 echo ">>> Disable Ctrl-Alt-Del"
-systemctl mask ctrl-alt-del.target && systemctl daemon reload
+systemctl mask ctrl-alt-del.target && systemctl daemon-reload
 
 <%# Disable and/or remove not-required services %>
 echo ">>> Disabling services"
 for service in abrtd abrt-oops; do
   systemctl disable ${service}
 done
-yum -q -y remove at rhnsd rhnlib iwl*-firmware
+yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 
 <%# On physical servers only enable HW Random Number Generator %>
 if [ "$(virt-what)" == "" ]; then

@@ -1,6 +1,22 @@
 New Kickstart
 
+This kickstart tree has been created for RHEL7/CentOS7, provisioned by Foreman 1.15/Satellite 6.3
+onwards. Several Foreman parameters changed syntax at this release level, so this tree will NOT work
+with earlier Foreman/Satellite versions.
 
+The file structure used in this Kickstart tree allows for importing into Foreman/Satellite using the
+Templates plugin (Foreman 1.15 / Satellite 6.3).  The plugin will append a string to the name of all
+erb files - for this kickstart I am using 'GatwardIT' as my system default prefix - if changing this
+string you will need to find/replace all instances within all of the erb files within this project.
+
+To import to Foreman/Satellite use the following:
+'''
+curl -H "Accept:application/json,version=2" -H "Content-Type:application/json" -u admin:xxxxxx
+-k https://sat6.example.com/api/v2/templates/import -X POST
+'''
+
+
+PARAMETERS
 
 The following Foreman parameters are used in this kickstart:
 

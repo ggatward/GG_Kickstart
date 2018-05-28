@@ -49,7 +49,7 @@ echo logvol swap --fstype swap --name=lv_swap --vgname=vg_sys --size=${vir_mem} 
 <% if host_param_true?('localhomedirs') -%>
   echo logvol /home --fstype <%= fstype %> --name=lv_home --vgname=vg_sys --size=10240 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
 <% else %>
-  echo logvol /home --fstype <%= fstype %> --name=lv_home --vgname=vg_sys --size=256 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
+  echo logvol /home --fstype <%= fstype %> --name=lv_home --vgname=vg_sys --size=64 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
 <% end %>
 echo logvol /tmp --fstype <%= fstype %> --name=lv_tmp --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev,noexec" >> /tmp/diskpart.cfg
 echo logvol /var --fstype <%= fstype %> --name=lv_var --vgname=vg_sys --size=5120 --fsoptions="noatime,nosuid,nodev" >> /tmp/diskpart.cfg
