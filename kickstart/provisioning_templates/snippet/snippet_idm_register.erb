@@ -19,9 +19,10 @@ echo ">>> Install IPA packages"
 yum -q -y install libsss_sudo ipa-client
 
 ## IDM Client Installation
+<% domain = host_param('idm_domain') || @host.realm.name.downcase -%>
+
 <% if host_param('idm_server') -%>
-  <% domain = host_param('idm_domain') || @host.realm.name.downcase -%>
-  idm_server="--server <%= host_param('idm_server') %> --domain <%=domain %>"
+  idm_server="--server <%= host_param('idm_server') %>"
 <% end -%>
 
 <% if host_param_true?('localhomedirs') -%>
@@ -34,7 +35,7 @@ yum -q -y install libsss_sudo ipa-client
 
 echo ">>> Enroling with IPA server"
 <%# One-time password will be requested at install time. Otherwise, $HOST[OTP] is used as a placeholder value. %>
-/usr/sbin/ipa-client-install -w '<%= @host.otp || "$HOST[OTP]" %>' --realm=<%= @host.realm %> -U $idm_mkhomedir $idm_opts $idm_server
+/usr/sbin/ipa-client-install -w '<%= @host.otp || "$HOST[OTP]" %>' --realm=<%= @host.realm %> --domain=<%=domain %> -U $idm_mkhomedir $idm_opts $idm_server
 
 <%# Add domain options for realm trust %>
 cat << EOF > /etc/sssd/conf.d/ad.conf
