@@ -207,6 +207,9 @@ echo "<%= @host %>" > /etc/hostname
   <%= snippet 'GatwardIT-snippet_puppet_setup' %>
 <% end -%>
 
+<% if host_param_true?('ansible_tower_provisioning') -%>
+  <%= snippet('GatwardIT-snippet_ansible_provisioning_callback') %>
+<% end %>
 
 <%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>
 echo "+++++++++++++++++++++++++++ Kernel configuration ++++++++++++++++++++++++++++++"

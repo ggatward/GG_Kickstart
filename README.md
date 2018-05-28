@@ -115,3 +115,21 @@ The rsyslog process will be configured to forward logs to the server specified b
 * kt_activation_keys
 Activation key to use when registering with Red Hat Satellite. This will normally be auto-populated
 by Satellite itself via Host Group configuration, but may be overridden if required.
+
+
+* enable-puppet4
+If set to 'true' will install puppet4 client instead of puppet3. This requires that the puppet master
+is also using puppet4, or puppet will fail on the client.
+
+
+* ansible_tower_provisioning
+If set to 'true' Ansible Tower provisioning callback will be used to run a post-install playbook.
+
+* ansible_host_config_key
+Authentication key for provisioning callback playbook
+
+* ansible_tower_fqdn
+FQDN of Ansible Tower for provisioning callback playbook
+
+* ansible_job_template_id
+Job ID of provisioning callback playbook

@@ -4,6 +4,8 @@ name: GatwardIT-snippet_puppet_setup
 description: this snippet will configure the Puppet agent
 %>
 echo "+++++++++++++++++++++++++ Puppet configuration ++++++++++++++++++++++++++++++"
+
+<%# Set our agent name and paths depending on the puppet version being installed %>
 <%
 if @host.param_true?('enable-puppetlabs-pc1-repo') || @host.param_true?('enable-puppet4')
   linux_package = 'puppet-agent'
@@ -16,6 +18,7 @@ else
 end
 %>
 
+<%# For puppet4 we need to enable the puppet4 repo in Satellite %>
 <% if @host.param_true?('enable-puppetlabs-pc1-repo') || @host.param_true?('enable-puppet4') %>
   subscription-manager repos --enable=rhel-*-satellite-tools-6.3-puppet4-rpms
 <% end %>
@@ -28,13 +31,10 @@ cat > <%= etc_path %>/puppet.conf << EOF
 <%= snippet 'GatwardIT-config_puppet.conf' %>
 EOF
 
-<% if os_family == 'Redhat' -%>
-  puppet_unit=puppet
-  /usr/bin/systemctl list-unit-files | grep -q puppetagent && puppet_unit=puppetagent
-  /usr/bin/systemctl enable ${puppet_unit}
-  <% end -%>
-/sbin/chkconfig --level 345 puppet on
-<% end -%>
+echo ">>> Enabling puppet on boot"
+puppet_unit=puppet
+/usr/bin/systemctl list-unit-files | grep -q puppetagent && puppet_unit=puppetagent
+/usr/bin/systemctl enable ${puppet_unit}
 
 
 # export a custom fact called 'is_installer' to allow detection of the installer environment in Puppet modules
