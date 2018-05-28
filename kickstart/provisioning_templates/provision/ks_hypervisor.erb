@@ -10,10 +10,6 @@ oses:
   # safemode renderer does not support unary negation
   pm_set = @host.puppetmaster.empty? ? false : true
   puppet_enabled = pm_set || @host.params['force-puppet']
-  ipv6_disabled = @host.params['ipv6_disabled'] ? true : false
-  auth_ldap = @host.params['auth_ldap'] ? true : false
-  auth_ad = @host.params['auth_ad'] ? true : false
-  enable_gui = @host.params['enable_gui'] ? true : false
   section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
 %>
 install
@@ -93,45 +89,65 @@ exec < /dev/tty3 > /dev/tty3
 <%= snippet 'kickstart_networking_setup' %>
 <% end -%>
 
-#update local time
-echo "updating system time"
-ntpdate -sub <%= @host.params['ntp-server'] || 'ntp1.core.home.gatwards.org' %>
+<%= snippet "GatwardIT-snippet_satellite_registration" %>
+
+<%# update local time %>
+echo "++++++++++++++++++++++++++++ Setting System Time ++++++++++++++++++++++++++++++"
+echo ">>> Updating system time & setting BIOS clock"
+yum -q -y install ntpdate
+ntpdate -sub <%= host_param('ntp-server') || 'ntp1.core.home.gatwards.org ntp2.core.home.gatwards.org' %>
 hwclock --systohc
 
-<%= snippet "Server_SOE-subscription_manager_registration" %>
+<%# Fix NTP sources %>
+sed -i 's/^server 0.*/server ntp1.core.home.gatwards.org iburst/' /etc/chrony.conf
+sed -i 's/^server 1.*/server ntp2.core.home.gatwards.org iburst/' /etc/chrony.conf
+sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' /etc/chrony.conf
+sed -i '/^server 3.*/d' /etc/chrony.conf
 
-<%# Generate new SSH keys %>
-<%= snippet "Server_SOE-GenSSHkeys" %>
+<%# Generate stronger host SSH keys %>
+<%= snippet "GatwardIT-snippet_generate_hardened_sshkeys" %>
+
+<%# Apply SSH hardening -%>
+<%# We do this early in the KS as it will get modified by the IPA installer (if we are using it) %>
+echo "+++++++++++++++++++++++++ Initial SSH hardening +++++++++++++++++++++++++++++++"
+cat << EOF > /etc/ssh/ssh_config
+<%= snippet "GatwardIT-config_ssh_config" %>
+EOF
+cat << EOF > /etc/ssh/sshd_config
+<%= snippet "GatwardIT-config_sshd_config" %>
+EOF
+# Just in case...
+dos2unix /etc/ssh/ssh_config
+dos2unix /etc/ssh/sshd_config
+
+<%# Update all the installed base packages from the updates repo %>
+echo "++++++++++++++++++++++++++++ Update all packages ++++++++++++++++++++++++++++++"
+echo ">>> Updating packages..."
+yum -y update
 
 <% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
-<%= snippet "Server_SOE-idm_register" %>
+<%= snippet "GatwardIT-snippet_idm_register" %>
 <% end -%>
 
-# update all the base packages from the updates repository
-yum -t -y -e 0 update
+<%# Install root CA certs %>
+<%= snippet "GatwardIT-snippet_trust_certs" %>
 
-<%# This snippet is to be replaced by puppet modules -%>
-# Apply Generic config
-<%#= snippet "Server_SOE-MISC" %>
+<%# Configure misc tooling %>
+<%= snippet "GatwardIT-snippet_misc" %>
+
+<%# In some situations our hostname is not being set. Force it here in case %>
+echo "<%= @host %>" > /etc/hostname
+
+<%# Install and configure puppet %>
+<% if puppet_enabled %>
+  <%= snippet 'GatwardIT-snippet_puppet_setup' %>
+<% end -%>
+
+<% if host_param_true?('ansible_tower_provisioning') -%>
+  <%= snippet('GatwardIT-snippet_ansible_provisioning_callback') %>
+<% end %>
 
 
-<%# Apply add Root CA -%>
-<%= snippet "Server_SOE-trust_root_cert" %>
-
-<%# Apply static ISM hardening - can be overridden by system owners if needed -%>
-<%#= snippet "Server_SOE-ISM" %>
-
-<%# Apply default hardened SSH server configuration -%>
-cat > /etc/ssh/sshd_config << EOL
-<%= snippet 'Server_SOE-sshd' %>
-EOL
-<%# Apply default hardened SSH client configuration -%>
-cat > /etc/ssh/ssh_config << EOL
-<%= snippet 'Server_SOE-ssh_client' %>
-EOL
-
-<%# Remove unwanted users-%>
-<%= snippet 'Server_SOE-user-del' %>
 
 cat << EOF >> /etc/hosts
 10.1.12.21   storage1
@@ -149,46 +165,24 @@ sed -i 's/option ping-timeout.*/option ping-timeout 10/' /etc/glusterfs/glusterd
 firewall-offline-cmd --add-service glusterfs
 
 
-<% if puppet_enabled %>
-# and add the puppet package
-yum -t -y -e 0 install puppet
 
-echo "Configuring puppet"
-cat > /etc/puppet/puppet.conf << EOL
-<%= snippet 'puppet.conf' %>
-EOL
+<%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>
+echo "+++++++++++++++++++++++++++ Kernel configuration ++++++++++++++++++++++++++++++"
+echo ">>> Rebuilding grub2 config..."
+grub2-mkconfig -o /boot/grub2/grub.cfg
 
-# Setup puppet to run on system reboot
-<% if os_major >= 7 -%>
-systemctl enable puppet
-<% else -%>
-/sbin/chkconfig --level 345 puppet on
-<% end -%>
-
-/usr/bin/puppet agent --config /etc/puppet/puppet.conf -o --tags no_such_tag <%= @host.puppetmaster.blank? ? '' : "--server #{@host.puppetmaster}" %> --no-daemonize
-<% end -%>
-
-# Disable remote root login after SOE is built and tests have run
-#echo "sed -i 's/^PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config ; service sshd restart > /dev/null" | at now + 30 minutes > /dev/null 2>&1 || echo "Error: Failed to schedule disabling root login via SSH."
-#echo "Finished scheduling job to disable root login via SSH"
-
-
-
-<%# After disabling kernel modules such as for Removable Media,Bluetooth, uncommon filesystems and protocols a new initramfs image must be created -%>
-echo "Starting : Rebuild initramfs"
+<%# After disabling kernel modules during hardening, a new initramfs needs to be created %>
+echo ">>> Rebuilding initramfs..."
 KERNEL_VERSION=$(rpm -q kernel --qf '%{version}-%{release}.%{arch}\n' | tail -n 1)
 echo $KERNEL_VERSION
 dracut -f /boot/initramfs-$KERNEL_VERSION.img $KERNEL_VERSION
-echo "Finished  : Rebuild initramfs"
-<%# After disabling kernel modules such as for Removable Media,Bluetooth, uncommon filesystems and protocols a new initramfs image must be created end -%>
 
 sync
 
 <% if @provisioning_type == nil || @provisioning_type == 'host' -%>
-
-# Inform the build system that we are done.
-echo "Informing Satellite that we are built"
-wget -q -O /dev/null --no-check-certificate <%= foreman_url('built') %>
+  # Inform the build system that we are done.
+  echo ">>> Informing Satellite that we are built"
+  wget -q -O /dev/null --no-check-certificate <%= foreman_url('built') %>
 <% end -%>
 ) 2>&1 | tee /root/install.post.log
 exit 0
