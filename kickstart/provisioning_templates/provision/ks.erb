@@ -192,7 +192,7 @@ fi
 <% end -%>
 
 <%# If the 'nessus_agent' host parameter is defined, install the Nessus Scanner Agent %>
-<% if host_param('nessus_agent') -%>
+<% if host_param('nessus_host') -%>
   <%= snippet "GatwardIT-snippet_nessus" %>
 <% end -%>
 
