@@ -202,19 +202,9 @@ fi
 <%# In some situations our hostname is not being set. Force it here in case %>
 echo "<%= @host %>" > /etc/hostname
 
+<%# Install and configure puppet %>
 <% if puppet_enabled %>
-  echo "+++++++++++++++++++++++++ Puppet configuration ++++++++++++++++++++++++++++++"
-  echo ">>> Installing puppet packages..."
-  yum -q -y install puppet
-
-  echo ">>> Configuring puppet"
-  cat > /etc/puppet/puppet.conf << EOL
-<%= snippet 'puppet.conf' %>
-EOL
-
-  # Setup puppet to run on system reboot
-  systemctl enable puppet
-  /usr/bin/puppet agent --config /etc/puppet/puppet.conf -o --tags no_such_tag <%= @host.puppetmaster.blank? ? '' : "--server #{@host.puppetmaster}" %> --no-daemonize
+  <%= snippet 'GatwardIT-snippet_puppet_setup' %>
 <% end -%>
 
 

@@ -23,7 +23,7 @@ echo "++++++++++++++++++ Red Hat Satellite registration Snippet ++++++++++++++++
   subscription-manager attach --auto
 
   echo ">>> Enable additional RHEL repositories"
-  subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
+  subscription-manager repos --enable=rhel-*-satellite-tools-6.3-rpms
   subscription-manager repos --enable=rhel-*-server-optional-rpms
 
   echo ">>> Installing Katello Agent Tools"

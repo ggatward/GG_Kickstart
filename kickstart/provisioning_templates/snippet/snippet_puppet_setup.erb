@@ -1,0 +1,43 @@
+<%#
+kind: snippet
+name: GatwardIT-snippet_puppet_setup
+description: this snippet will configure the Puppet agent
+%>
+echo "+++++++++++++++++++++++++ Puppet configuration ++++++++++++++++++++++++++++++"
+<%
+if @host.param_true?('enable-puppetlabs-pc1-repo') || @host.param_true?('enable-puppet4')
+  linux_package = 'puppet-agent'
+  etc_path = '/etc/puppetlabs/puppet'
+  bin_path = '/opt/puppetlabs/bin'
+else
+  linux_package = 'puppet'
+  etc_path = '/etc/puppet'
+  bin_path = '/usr/bin'
+end
+%>
+
+<% if @host.param_true?('enable-puppetlabs-pc1-repo') || @host.param_true?('enable-puppet4') %>
+  subscription-manager repos --enable=rhel-*-satellite-tools-6.3-puppet4-rpms
+<% end %>
+
+echo ">>> Installing puppet packages..."
+yum -q -y install <%= linux_package %>
+
+echo ">>> Configuring puppet"
+cat > <%= etc_path %>/puppet.conf << EOF
+<%= snippet 'GatwardIT-config_puppet.conf' %>
+EOF
+
+<% if os_family == 'Redhat' -%>
+  puppet_unit=puppet
+  /usr/bin/systemctl list-unit-files | grep -q puppetagent && puppet_unit=puppetagent
+  /usr/bin/systemctl enable ${puppet_unit}
+  <% end -%>
+/sbin/chkconfig --level 345 puppet on
+<% end -%>
+
+
+# export a custom fact called 'is_installer' to allow detection of the installer environment in Puppet modules
+export FACTER_is_installer=true
+# passing a non-existent tag like "no_such_tag" to the puppet agent only initializes the node
+<%= bin_path %>/puppet agent --config <%= etc_path %>/puppet.conf --onetime <%= @host.param_true?('run-puppet-in-installer') ? '' : '--tags no_such_tag' %> <%= @host.puppetmaster.blank? ? '' : "--server #{@host.puppetmaster}" %> --no-daemonize
