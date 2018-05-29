@@ -37,7 +37,7 @@ echo clearpart --drives ${PRI_DISK} --all --initlabel >> /tmp/diskpart.cfg
 echo part /boot --fstype <%= fstype %> --size=512 --ondisk=${PRI_DISK} --asprimary >> /tmp/diskpart.cfg
 
 <% if host_param_true?('luks') -%>
-  echo part pv.01 --size=1 --grow --ondisk=${PRI_DISK} --encrypted --passphrase=<%= @host.params['luks-passphrase'] %> >> /tmp/diskpart.cfg
+  echo part pv.01 --size=1 --grow --ondisk=${PRI_DISK} --encrypted --passphrase=<%= host_param('luks-passphrase') %> >> /tmp/diskpart.cfg
 <% else %>
   echo part pv.01 --size=1 --grow --ondisk=${PRI_DISK} >> /tmp/diskpart.cfg
 <% end %>
@@ -57,6 +57,6 @@ echo logvol /var/log/ --fstype <%= fstype %> --name=lv_log --vgname=vg_sys --siz
 echo logvol /var/log/audit --fstype <%= fstype %> --name=lv_audit --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev,noexec" >> /tmp/diskpart.cfg
 
 # Include additional partition snippets defined by host 'ptable' parameter
-<% if @host.params['ptable'] %>
-  <%=  snippet "GatwardIT-ptable_#{@host.params['ptable']}" %>
+<% if host_param('ptable') %>
+  <%=  snippet "GatwardIT-ptable_#{host_param('ptable')}" %>
 <% end %>

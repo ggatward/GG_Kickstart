@@ -32,3 +32,18 @@ fi
 
 echo ">>> Installing other common tools"
 yum -q -y install git tree iotop vim iptraf htop dstat dropwatch iptstate bash-completion bash-completion-extras
+
+<% if host_param_true?('add_ansible_user') %>
+  echo ">>> Adding service account for Ansible"
+  useradd svc-ansible -d /var/lib/svc-ansible
+  semanage fcontext -a -t user_home_dir_t "/var/lib/svc-ansible(/.*)?"
+  mkdir -p /var/lib/svc-ansible/.ssh
+  semanage fcontext -a -t ssh_home_t "/var/lib/svc-ansible/.ssh(/.*)?"
+  cat << EOF > /var/lib/svc-ansible/.ssh/id_rsa.pub
+ssh-rsa AAA........
+EOF
+  cp /var/lib/svc-ansible/.ssh/id_rsa.pub /var/lib/svc-ansible/.ssh/authorized_keys
+  chown -R svc-ansible: /var/lib/svc-ansible
+  restorecon -R /var/lib/svc-ansible
+  echo "svc-ansible  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/svc-ansible
+<% end %>

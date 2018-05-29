@@ -150,7 +150,9 @@ if [ "$(virt-what)" == "vmware" ]; then
 elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
   echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
   echo ">>> Installing ovirt guest agent..."
-  subscription-manager repos --enable rhel-*-server-rh-common-rpms
+  <% if @host.operatingsystem.name == "RedHat" -%>
+    subscription-manager repos --enable rhel-*-server-rh-common-rpms
+  <% end -%>
   yum -q -y install ovirt-guest-agent
   systemctl enable ovirt-guest-agent
 fi
@@ -208,7 +210,7 @@ echo "<%= @host %>" > /etc/hostname
 <% end -%>
 
 <% if host_param_true?('ansible_tower_provisioning') -%>
-  <%= snippet('GatwardIT-snippet_ansible_provisioning_callback') %>
+  <%= snippet 'GatwardIT-snippet_ansible_provisioning_callback' %>
 <% end %>
 
 <%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>

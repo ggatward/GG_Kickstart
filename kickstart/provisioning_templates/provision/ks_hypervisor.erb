@@ -9,7 +9,7 @@ oses:
   os_major = @host.operatingsystem.major.to_i
   # safemode renderer does not support unary negation
   pm_set = @host.puppetmaster.empty? ? false : true
-  puppet_enabled = pm_set || @host.params['force-puppet']
+  puppet_enabled = pm_set || host_param('force-puppet')
   section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
 %>
 install
@@ -31,7 +31,7 @@ network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{sub
 rootpw --iscrypted <%= root_pass %>
 firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
 authconfig --useshadow --passalgo=sha512 --kickstart
-timezone --utc <%= @host.params['time-zone'] || 'Australia/Sydney' %>
+timezone --utc <%= host_param('time-zone') || 'Australia/Sydney' %>
 
 bootloader --location=mbr --append="nofb quiet splash=quiet" <%= grub_pass %>
 

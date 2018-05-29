@@ -37,6 +37,23 @@ echo ">>> Enroling with IPA server"
 <%# One-time password will be requested at install time. Otherwise, $HOST[OTP] is used as a placeholder value. %>
 /usr/sbin/ipa-client-install -w '<%= @host.otp || "$HOST[OTP]" %>' --realm=<%= @host.realm %> --domain=<%=domain %> -U $idm_mkhomedir $idm_opts $idm_server
 
+### DEVILHORN IMPLEMENTATION
+# Additional host parms:
+# - dh_svcprincipal
+# - dh_svcprincipal_pass (hidden)
+# - ipa_host_groups
+#
+# kinit using service principal
+#echo <%#= host_param('dh_svcprincipal_pass') %> | /usr/bin/kinit <%#= host_param('dh_svcprincipal') %>
+#
+# Loop through each hostgroup and add host to them
+#<%# for pool in host_param('ipa_host_groups').split(',') %>
+#  /usr/bin/ipa hostgroup-add-member <%# pool %> --hosts `hostname -f`
+#<%# end %>
+#
+### END DEVILHORN
+
+
 <%# Add domain options for realm trust %>
 cat << EOF > /etc/sssd/conf.d/ad.conf
 [sssd]
