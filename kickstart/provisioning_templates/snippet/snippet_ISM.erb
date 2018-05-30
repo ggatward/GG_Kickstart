@@ -51,15 +51,16 @@ EOL
 
 
 <%# ----------------------- UMASK HARDENING SECTION ---------------------------%>
-echo ">>> Setting default umasks"
-# Some of this hardening may not make sense and has simply been done to meet STIG SCAP tests.
-for PFILE in /etc/bashrc /etc/csh.cshrc /etc/profile; do
-  sed -i 's/umask [0-9]\{3\}/umask 077/g' ${PFILE} || echo "Error: Failed setting umask in ${PFILE}."
-done
+<% unless host_param_true?('ignore_umask_hardening') %>
+  echo ">>> Setting default umasks"
+  # Some of this hardening may not make sense and has simply been done to meet STIG SCAP tests.
+  for PFILE in /etc/bashrc /etc/csh.cshrc /etc/profile; do
+    sed -i 's/umask [0-9]\{3\}/umask 077/g' ${PFILE} || echo "Error: Failed setting umask in ${PFILE}."
+  done
 
-# Ensure daemon umask is 027 by default to pass SCAP tests.
-sed -i "s/umask [0-9]\{3\}/umask 027/g" /etc/init.d/functions
-
+  # Ensure daemon umask is 027 by default to pass SCAP tests.
+  sed -i "s/umask [0-9]\{3\}/umask 027/g" /etc/init.d/functions
+<% end %>
 
 <%# --------------------------- AIDE/PRELINK SECTION --------------------------%>
 echo ">>> Setting up for AIDE"
