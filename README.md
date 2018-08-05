@@ -44,6 +44,10 @@ To source an additional partition definition that creates a Satellite Capsule pa
 example,  set the 'ptable' parameter to 'capsule'.  This will add the ptable_capsule snippet to the
 generic partition table.
 
+* disable_thp
+If set to 'true' sets kernel option in grub.conf to disable Transparent Huge Pages. Some applications
+require this to be set (e.g. splunk) so this can be done at build-time.
+
 * time-zone
 Overrides the default timezone for a host (default is 'Australia/Sydney'). Define the 'time-zone'
 parameter value as the string of the desired timezone.

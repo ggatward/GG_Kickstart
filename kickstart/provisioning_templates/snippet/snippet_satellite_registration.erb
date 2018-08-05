@@ -13,13 +13,15 @@ echo "++++++++++++++++++ Red Hat Satellite registration Snippet ++++++++++++++++
   echo ">>> Adding custom Satellite facts"
   echo "{\"satellite.capsule\":\"$(grep baseurl /etc/rhsm/rhsm.conf | cut -f3 -d/)\"}" > /etc/rhsm/facts/satellite.facts
 
+  <%# Increase subscription-manager client timeout %>
   subscription-manager config --server.server_timeout 180
 
   echo ">>> Registering the system to Satellite"
   sleep $((RANDOM % 15))
   subscription-manager register --org="<%= @host.rhsm_organization_label %>" --name="<%= @host.name %>" --activationkey="<%= host_param('kt_activation_keys') %>"
 
-  sleep 10
+  <%# Auto attach for VDC subscriptions %> 
+  sleep 5
   subscription-manager attach --auto
 
   echo ">>> Enable additional RHEL repositories"
