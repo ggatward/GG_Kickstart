@@ -21,6 +21,11 @@ sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.home.gatwards.org/' /
 echo ">>> Removing rhgb kernel option"
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub
 
+<% if host_param_true?('disable_thp') -%>
+  echo ">>> Disabling Transparent Huge Pages kernel option"
+  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb transparent_hugepage=never/}' /etc/default/grub
+<% end %>
+
 echo ">>> Configuring root prompt"
 if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
   echo 'export PS1="\[\033[0;36m\]\u@\h.qa\[\033[0;36m\][\w] #\[\033[0m\] "' >> /root/.bashrc
