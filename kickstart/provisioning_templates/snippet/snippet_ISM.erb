@@ -180,8 +180,9 @@ sed -i 's/active = no/active = yes/g' /etc/audisp/plugins.d/syslog.conf
 sed -i 's/args = .*/args = LOG_LOCAL0/g' /etc/audisp/plugins.d/syslog.conf
 
 # Configure how auditd sends events
-sed -i 's/flush = INCREMENTAL.*/flush = SYNC/g' /etc/audit/auditd.conf
-sed -i 's/freq = .*/freq = 0/g' /etc/audit/auditd.conf
+### SYNC flushing causes performance hits with slower disk IO
+#sed -i 's/flush = INCREMENTAL.*/flush = SYNC/g' /etc/audit/auditd.conf
+#sed -i 's/freq = .*/freq = 0/g' /etc/audit/auditd.conf
 sed -i 's/admin_space_left_action = SUSPEND/admin_space_left_action = SINGLE/g' /etc/audit/auditd.conf
 sed -i 's/disk_full_action = SUSPEND/disk_full_action = HALT/g' /etc/audit/auditd.conf
 sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/auditd.conf

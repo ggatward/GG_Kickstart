@@ -1,0 +1,157 @@
+<%#
+kind: provision
+name: GatwardIT-ks_ansible
+oses:
+- Red Hat Enterprise Linux 7
+- CentOS 7
+%>
+<%
+  rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+  os_major = @host.operatingsystem.major.to_i
+  # safemode renderer does not support unary negation
+  pm_set = @host.puppetmaster.empty? ? false : true
+  puppet_enabled = pm_set || host_param('force-puppet')
+  section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
+%>
+install
+<%= @mediapath %>
+lang en_US.UTF-8
+selinux --enforcing
+keyboard us
+skipx
+
+<% subnet = @host.subnet -%>
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+<% dhcp = subnet.dhcp_boot_mode? && !@static -%>
+<% else -%>
+<% dhcp = !@static -%>
+<% end -%>
+
+network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{subnet.mask} --gateway=#{subnet.gateway} --nameserver=#{[subnet.dns_primary, subnet.dns_secondary].select{ |item| item.present? }.join(',')}" %> --hostname <%= @host %><%= os_major >= 6 ? " --device=#{@host.mac}" : '' -%>
+
+rootpw --iscrypted <%= root_pass %>
+firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
+authconfig --useshadow --passalgo=sha512 --kickstart
+timezone --utc <%= host_param('time-zone') || 'Australia/Sydney' %>
+
+bootloader --location=mbr --append="nofb quiet splash=quiet" <%= grub_pass %>
+
+<%# Include the dynamic disk config if it is defined -%>
+<% if @dynamic -%>
+%include /tmp/diskpart.cfg
+<% else -%>
+<%= @host.diskLayout %>
+<% end -%>
+
+text
+reboot
+
+%packages --ignoremissing
+@Core
+chrony
+dhclient
+mlocate
+policycoreutils-python
+policycoreutils-restorecond
+screen
+vim
+wget
+yum
+yum-utils
+-iwl*
+-ivtv*
+<%= section_end -%>
+
+<%# Generate dynamic partition table configuration -%>
+<% if @dynamic -%>
+%pre
+<%= @host.diskLayout %>
+<%= section_end -%>
+<% end -%>
+
+%post --nochroot
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+cp -va /etc/resolv.conf /mnt/sysimage/etc/resolv.conf
+/usr/bin/chvt 1
+) 2>&1 | tee /mnt/sysimage/root/install.postnochroot.log
+<%= section_end -%>
+
+
+%post
+logger "Starting anaconda <%= @host %> postinstall"
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+  <%= snippet 'kickstart_networking_setup' %>
+<% end -%>
+
+<% if @host.operatingsystem.name == "RedHat" %>
+  <%= snippet "GatwardIT-snippet_satellite_registration" %>
+<% else -%>
+  <%= snippet "GatwardIT-snippet_centos_repos" %>
+<% end -%>
+
+<%# update local time %>
+echo "++++++++++++++++++++++++++++ Setting System Time ++++++++++++++++++++++++++++++"
+echo ">>> Updating system time & setting BIOS clock"
+yum -q -y install ntpdate
+ntpdate -sub <%= host_param('ntp-server') || 'ntp1.core.home.gatwards.org ntp2.core.home.gatwards.org' %>
+hwclock --systohc
+
+<%# Fix NTP sources %>
+sed -i 's/^server 0.*/server ntp1.core.home.gatwards.org iburst/' /etc/chrony.conf
+sed -i 's/^server 1.*/server ntp2.core.home.gatwards.org iburst/' /etc/chrony.conf
+sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' /etc/chrony.conf
+sed -i '/^server 3.*/d' /etc/chrony.conf
+
+<%# Generate stronger host SSH keys %>
+<%= snippet "GatwardIT-snippet_generate_hardened_sshkeys" %>
+
+<%# Update all the installed base packages from the updates repo %>
+echo "++++++++++++++++++++++++++++ Update all packages ++++++++++++++++++++++++++++++"
+echo ">>> Updating packages..."
+yum -y update
+<%# Updating centos-release will restore the default CentOS repo configs and break things from here %>
+<% if @host.operatingsystem.name == "CentOS" -%>
+  rm -f /etc/yum.repos.d/CentOS*
+<% end -%>
+
+
+<%# If we are part of an IdM realm, enrol here -%>
+<% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
+  <%= snippet "GatwardIT-snippet_idm_register" %>
+<% end -%>
+
+<%# If we are part of an AD domain, enrol here -%>
+<% if host_param('ad') -%>
+  <%= snippet "GatwardIT-snippet_AD" %>
+<% end -%>
+
+<%# If we are part of an LDAP environment, bind to LDAP here -%>
+<% if host_param('ldap') -%>
+  <%= snippet "GatwardIT-snippet_LDAP" %>
+<% end -%>
+
+<%# Install and configure puppet %>
+<% if puppet_enabled %>
+  <%= snippet 'GatwardIT-snippet_puppet_setup' %>
+<% end -%>
+
+<% if host_param_true?('ansible_tower_provisioning') -%>
+  <%= snippet 'GatwardIT-snippet_ansible_provisioning_callback' %>
+<% end %>
+
+<% if @provisioning_type == nil || @provisioning_type == 'host' -%>
+  # Inform the build system that we are done.
+  echo ">>> Informing Satellite that we are built"
+  wget -q -O /dev/null --no-check-certificate <%= foreman_url('built') %>
+<% end -%>
+) 2>&1 | tee /root/install.post.log
+exit 0
+
+<%= section_end -%>
