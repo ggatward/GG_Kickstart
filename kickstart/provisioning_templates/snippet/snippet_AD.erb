@@ -24,9 +24,20 @@ cat > /etc/realmd.conf << EOF
   automatic-id-mapping = no
 EOF
 
+# To avoid computer object conflicts in AD we need to add a prefix to differentiate same hostnames in AD.
+# NOTE - this limits the usable hostname to 13 characters, as AD truncates at 15 and we are prefixing 2.
+if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
+  adhostname=q-$(hostname -s)
+elif [ $(hostname -f | grep -c '.test.') -eq 1 ]; then
+  adhostname=t-$(hostname -s)
+else
+  adhostname=$(hostname -s)
+fi
+
+
 echo ">>>>>>>>>>>>>>>>>>>>>>> Ignore any password prompts here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 <% if host_param('ad') == 'AD.HOME.GATWARDS.ORG' -%>
-  echo '<%= host_param('ad_join_passwd')%>' | realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad') %> --unattended --install=/ --computer-ou="ou=Linux Servers,dc=ad,dc=home,dc=gatwards,dc=org"
+  echo '<%= host_param('ad_join_passwd')%>' | realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad') %> --unattended --install=/ --computer-ou="ou=Linux Servers,dc=ad,dc=home,dc=gatwards,dc=org" --computer-name $adhostname
 <% else -%>
   echo '<%= host_param('ad_join_passwd')%>' | realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad') %> --unattended --install=/
 <% end -%>

@@ -71,7 +71,44 @@ yum -q -y remove gnome-initial-setup
 
 ######################
 
-# NVIDIA Section
+<% if host_param_true?('nvidia') %>
+  echo ">>> Install NVIDIA driver"
+
+  CARD=$(lspci | grep -i vga | grep -i NVIDIA | cut -d[ -f2 | cit -d] -f1)
+  echo "  >> Detected $CARD"
+  if [ $(echo $CARD | egrep -c 'Quadro K|Quadro 2000') -eq 1 ]; then
+    echo "  >> NVIDIA Driver series = 390.x"
+    ver="kmod-nvidia"
+  elif [ $(echo $CARD | grep -c 'Quadro FX') -eq 1 ]; then
+    echo "  >> NVIDIA Driver series = 340.x"
+    ver="kmod-nvidia-340xx"
+  elif [ $(echo $CARD | grep -c 'Quadro 4000') -eq 1 ]; then
+    echo "  >> NVIDIA Driver series = 375.x *** NOT YET SUPPORTED IN KS"
+    ver="unk"
+  else
+    echo "  >> Unknown graphics card - SKIPPING"
+    ver="unk"
+  fi
+
+  if [ "$ver" != "unk" ]; then
+    echo "  >> Blacklist nouveau driver"
+    cat > /etc/modprobe.d/disable_nouveau.conf << EOL
+blacklist nouveau
+options nouveau modeset=0
+EOL
+
+    echo "  >> Install nvidia kmod package"
+    cat << EOF > /etc/yum.repos.d/elrepo.repo
+[elrepo-el7]
+name=elrepo-el7-x86_64
+baseurl=http://syd.mirror.rackspace.com/elrepo/elrepo/el7/x86_64/
+enabled=1
+gpgcheck=0
+EOF
+
+    yum -q -y install $ver
+  fi
+<% end %>
 
 ######################
 
