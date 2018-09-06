@@ -198,6 +198,11 @@ fi
   <%= snippet "GatwardIT-snippet_nessus" %>
 <% end -%>
 
+<%# If the 'splunk_host' host parameter is defined, install the splunkforwarder package %>
+<% if host_param('splunk_host') -%>
+  <% snippet "GatwardIT-snippet_splunkforwarder" %>
+<% end -%>
+
 <%# Apply initial static ISM hardening - can be overridden if needed %>
 <%= snippet "GatwardIT-snippet_ISM" %>
 
