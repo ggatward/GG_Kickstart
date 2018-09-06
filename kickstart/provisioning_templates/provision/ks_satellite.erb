@@ -1,6 +1,6 @@
 <%#
 kind: provision
-name: GatwardIT-ks_hypervisor
+name: GatwardIT-ks_satellite
 oses:
 - Red Hat Enterprise Linux 7
 %>
@@ -138,31 +138,9 @@ yum -y update
 <%# In some situations our hostname is not being set. Force it here in case %>
 echo "<%= @host %>" > /etc/hostname
 
-<%# Install and configure puppet %>
-<% if puppet_enabled %>
-  <%= snippet 'GatwardIT-snippet_puppet_setup' %>
-<% end -%>
-
 <% if host_param_true?('ansible_tower_provisioning') -%>
   <%= snippet('GatwardIT-snippet_ansible_provisioning_callback') %>
 <% end %>
-
-
-
-cat << EOF >> /etc/hosts
-10.1.12.21   storage1
-10.1.12.22   storage2
-10.1.12.23   storage3
-10.1.12.24   storage4
-EOF
-
-subscription-manager repos --enable rh-gluster-3-for-rhel-7-server-rpms
-yum -y install glusterfs-server
-systemctl enable glusterd
-sed -i '/option event-threads 1/a\ \ \ \ option rpc-auth-allow-insecure on' /etc/glusterfs/glusterd.vol
-sed -i 's/option ping-timeout.*/option ping-timeout 10/' /etc/glusterfs/glusterd.vol
-
-firewall-offline-cmd --add-service glusterfs
 
 
 

@@ -1,0 +1,29 @@
+<%#
+kind: ptable
+name: GatwardIT-Satellite
+oses:
+- RedHat
+%>
+
+zerombr
+clearpart --all --initlabel
+
+part /boot --fstype xfs --size=1024 --ondisk=vda --asprimary
+part pv.01 --size=1 --grow --ondisk=vda
+part pv.02 --size=1 --grow --ondisk=vdb
+
+volgroup vg_sys --pesize=32768 pv.01
+volgroup vg_sat --pesize=32768 pv.02
+
+logvol / --fstype xfs --name=root --vgname=vg_sys --size=8192 --fsoptions="noatime"
+logvol swap --fstype swap --name=swap --vgname=vg_sys --size=4096 >> /tmp/diskpart.cfg
+logvol /home --fstype xfs --name=home --vgname=vg_sys --size=64 --fsoptions="noatime,nosuid,nodev"
+logvol /tmp --fstype xfs --name=tmp --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev"
+logvol /var --fstype xfs --name=var --vgname=vg_sys --size=10240 --fsoptions="noatime,nosuid,nodev"
+logvol /var/log/ --fstype xfs --name=log --vgname=vg_sys --size=5120 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/log/audit --fstype xfs --name=audit --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev,noexec"
+
+logvol /var/lib/mongodb --fstype xfs --name=mongo --vgname=vg_sat --size=20480 --fsoptions="noatime,nosuid,nodev"
+logvol /var/lib/pgsql --fstype xfs --name=pgsql --vgname=vg_sat --size=5120 --fsoptions="noatime,nosuid,nodev"
+logvol /var/lib/pulp --fstype xfs --name=pulp --vgname=vg_sat --size=51200 --fsoptions="noatime,nosuid,nodev"
+logvol /var/sat-transfer --fstype xfs --name=transfer --vgname=vg_sat --size=10240 --fsoptions="noatime,nosuid,nodev"
