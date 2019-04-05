@@ -4,6 +4,11 @@ name: GatwardIT-ks_ansible
 oses:
 - Red Hat Enterprise Linux 7
 - CentOS 7
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 <%
   rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'

@@ -1,6 +1,11 @@
 <%#
 kind: snippet
 name: GatwardIT-pxelinux_windows
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 
 MENU GOTO windows
@@ -10,5 +15,5 @@ MENU TITLE Windows WDS Installs
 LABEL Chainload WDS
   KERNEL pxechn.c32
   APPEND 172.22.1.222::\Boot\x86\wdsnbp.com -W
-  
+
 MENU END

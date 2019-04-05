@@ -3,6 +3,11 @@ name: GatwardIT-PXELinux global default
 snippet: false
 model: ProvisioningTemplate
 kind: PXELinux
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 <%# Used to boot unknown hosts, do not associate or change the name. %>
 
@@ -21,4 +26,3 @@ MENU SEPARATOR
 <%= snippet "GatwardIT-pxelinux_centos" %>
 <%= snippet "GatwardIT-pxelinux_fedora" %>
 <%= snippet "GatwardIT-pxelinux_windows" %>
-

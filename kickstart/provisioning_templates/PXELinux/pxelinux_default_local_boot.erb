@@ -3,6 +3,11 @@ name: GatwardIT-PXELinux default local boot
 snippet: false
 model: ProvisioningTemplate
 kind: PXELinux
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 <%# Used to boot provisioned hosts, do not associate or change the name. %>
 

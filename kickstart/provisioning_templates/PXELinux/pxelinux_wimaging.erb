@@ -9,9 +9,13 @@ oses:
 - Windows Server 2016
 - Windows
 - Windows 10
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 DEFAULT menu
 LABEL menu
     COM32 linux.c32 boot/wimboot
     APPEND initrdfile=boot/windows-x64/bcd,boot/windows-x64/boot.sdi,boot/windows-x64/boot.wim
-    

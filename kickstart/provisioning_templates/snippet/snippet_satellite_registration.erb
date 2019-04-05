@@ -1,6 +1,11 @@
 <%#
 kind: snippet
 name: GatwardIT-snippet_satellite_registration
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 echo "++++++++++++++++++ Red Hat Satellite registration Snippet +++++++++++++++++++++++++++++++++++"
 
@@ -20,7 +25,7 @@ echo "++++++++++++++++++ Red Hat Satellite registration Snippet ++++++++++++++++
   sleep $((RANDOM % 15))
   subscription-manager register --org="<%= @host.rhsm_organization_label %>" --name="<%= @host.name %>" --activationkey="<%= host_param('kt_activation_keys') %>"
 
-  <%# Auto attach for VDC subscriptions %> 
+  <%# Auto attach for VDC subscriptions %>
   sleep 5
   subscription-manager attach --auto
 
