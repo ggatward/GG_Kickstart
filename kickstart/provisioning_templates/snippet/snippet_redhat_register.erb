@@ -63,12 +63,6 @@ snippet: true
 %>
 
 <%
-redhat_install_agent = host_param('redhat_install_agent') ? true : false
-redhat_install_host_tools = host_param('redhat_install_host_tools') ? true : false
-redhat_install_host_tracer_tools = host_param('redhat_install_host_tracer_tools') ? true : false
-%>
-
-<%
   # Katello or subscription-manager:
   if host_param_true?('subscription_manager') || host_param('kt_activation_keys')
     registration_type = 'subscription_manager'
@@ -186,13 +180,13 @@ redhat_install_host_tracer_tools = host_param('redhat_install_host_tracer_tools'
        fi
     <% end %>
 
-    <% if redhat_install_agent %>
+    <% if host_param_true?('redhat_install_agent') %>
       $PACKAGE_MAN install katello-agent
-    <% elsif redhat_install_host_tools %>
+    <% elsif host_param_true?('redhat_install_host_tools') %>
       $PACKAGE_MAN install katello-host-tools
     <% end %>
 
-    <% if redhat_install_host_tracer_tools %>
+    <% if host_param_true?('redhat_install_host_tracer_tools') %>
       $PACKAGE_MAN install katello-host-tools-tracer
     <% end %>
   <% end %>
