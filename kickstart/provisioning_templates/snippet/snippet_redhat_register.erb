@@ -68,9 +68,9 @@ organizations:
 %>
 
 <%
-redhat_install_agent = host_param('redhat_install_agent') ? false : true
-redhat_install_host_tools = host_param('redhat_install_host_tools') ? true : false
-redhat_install_host_tracer_tools = host_param('redhat_install_host_tracer_tools') ? false : true
+redhat_install_agent = host_param('redhat_install_agent') || false
+redhat_install_host_tools = host_param('redhat_install_host_tools') || true
+redhat_install_host_tracer_tools = host_param('redhat_install_host_tracer_tools') || false
 %>
 
 <%
