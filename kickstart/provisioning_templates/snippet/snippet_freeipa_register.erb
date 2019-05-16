@@ -53,10 +53,10 @@ organizations:
 ## IPA Client Installation
 ##
 <% domain = host_param('freeipa_domain') || @host.realm.name.downcase -%>
+<% freeipa_domain="--domain <%= domain %>" %>
 
 <% if host_param('freeipa_server') -%>
 freeipa_server="--server <%= host_param('freeipa_server') %>"
-freeipa_domain="--domain <%= domain %>"
 <% end -%>
 
 <% unless host_param_false?('freeipa_mkhomedir') %>
@@ -91,12 +91,12 @@ freeipa_opts="<%= host_param('freeipa_opts') %>"
 ### END DEVILHORN
 
 <%# Add domain options for realm trust %>
-cat << EOF > /etc/sssd/conf.d/ad.conf
-[sssd]
-default_domain_suffix = AD.HOME.GATWARDS.ORG
-full_name_format = %1\$s
-EOF
-chmod 600 /etc/sssd/conf.d/ad.conf
+# cat << EOF > /etc/sssd/conf.d/ad.conf
+# [sssd]
+# default_domain_suffix = AD.HOME.GATWARDS.ORG
+# full_name_format = %1\$s
+# EOF
+# chmod 600 /etc/sssd/conf.d/ad.conf
 
 
 ##
