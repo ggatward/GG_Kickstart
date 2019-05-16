@@ -172,7 +172,7 @@ snippet: true
   <% end %>
 
   <% if !atomic %>
-    <% if redhat_install_agent || redhat_install_host_tools || redhat_install_host_tracer_tools %>
+    <% if host_param('redhat_install_agent') || host_param('redhat_install_host_tools') || host_param('redhat_install_host_tracer_tools') %>
        if [ -f /usr/bin/dnf ]; then
          PACKAGE_MAN="dnf -y"
        else
