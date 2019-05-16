@@ -1,11 +1,8 @@
 <%#
 kind: snippet
-name: GatwardIT-config_puppet.conf
-locations:
-- Home
-organizations:
-- GatwardIT
-- MyOrg
+name: GatwardIT-snippet_puppet.conf
+model: ProvisioningTemplate
+snippet: true
 %>
 <%
   os_family = @host.operatingsystem.family

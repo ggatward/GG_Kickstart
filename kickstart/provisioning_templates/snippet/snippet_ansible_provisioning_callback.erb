@@ -1,30 +1,23 @@
 <%#
 kind: snippet
 name: GatwardIT-snippet_ansible_provisioning_callback
-locations:
-- Home
-organizations:
-- GatwardIT
-- MyOrg
+model: ProvisioningTemplate
+snippet: true
 -%>
-echo "+++++++++++++++++++++ Ansible Callback configuration ++++++++++++++++++++++++++"
-
-<%# Create one-shot service to run on first boot to do the callback %>
-echo ">>> Creating Ansible Callback Service"
-cat << EOF > /etc/systemd/system/ansible-callback.service
-[Unit]
-Description=Provisioning callback to Ansible Tower
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/curl -k -s --data "host_config_key=<%= host_param('ansible_host_config_key') -%>" https://<%= host_param('ansible_tower_fqdn') -%>/api/v2/job_templates/<%= host_param('ansible_job_template_id') -%>/callback/
-ExecStartPost=/usr/bin/systemctl disable ansible-callback
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-<%# Enable the ansible-callback one-shot service %>
+<% if host_param_true?('ansible_tower_provisioning') -%>
+<%
+  rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+  os_major = @host.operatingsystem.major.to_i
+  has_systemd = (@host.operatingsystem.name == 'Fedora' && os_major >= 20) || (rhel_compatible && os_major >= 7)
+-%>
+<% if has_systemd -%>
+<%= save_to_file('/etc/systemd/system/ansible-callback.service',
+                 snippet('GatwardIT-snippet_ansible_tower_callback_service')) %>
+# Runs during first boot, removes itself
 systemctl enable ansible-callback
+<% else -%>
+# Assume systemd is not available
+<%= save_to_file('/root/ansible_provisioning_call.sh', snippet('GatwardIT-snippet_ansible_tower_callback_script')) %>
+(chmod +x /root/ansible_provisioning_call.sh; crontab -u root -l 2>/dev/null; echo "@reboot /root/ansible_provisioning_call.sh" ) | crontab -u root -
+<% end -%>
+<% end -%>

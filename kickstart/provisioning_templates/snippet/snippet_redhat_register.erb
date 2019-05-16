@@ -3,11 +3,6 @@ kind: snippet
 name: GatwardIT-snippet_redhat_register
 model: ProvisioningTemplate
 snippet: true
-locations:
-- Home
-organizations:
-- GatwardIT
-- MyOrg
 # Red Hat Registration Snippet
 #
 # General parameters:
@@ -68,9 +63,9 @@ organizations:
 %>
 
 <%
-redhat_install_agent = host_param('redhat_install_agent') || false
-redhat_install_host_tools = host_param('redhat_install_host_tools') || true
-redhat_install_host_tracer_tools = host_param('redhat_install_host_tracer_tools') || false
+redhat_install_agent = host_param('redhat_install_agent') ? true : false
+redhat_install_host_tools = host_param('redhat_install_host_tools') ? true : false
+redhat_install_host_tracer_tools = host_param('redhat_install_host_tracer_tools') ? true : false
 %>
 
 <%

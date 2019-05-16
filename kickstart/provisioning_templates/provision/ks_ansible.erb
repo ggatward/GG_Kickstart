@@ -108,6 +108,7 @@ services --disabled gpm,sendmail,cups,pcmcia,isdn,rawdevices,hpoj,bluetooth,open
 <% end -%>
 
 <% if realm_compatible && host_enc['parameters']['realm'] && @host.realm && @host.realm.realm_type == 'Active Directory' -%>
+echo "+++++++++++++++++++++++ Joining Active Directory Domain ++++++++++++++++++++++++"
 # One-time password will be requested at install time. Otherwise, $HOST[OTP] is used as a placeholder value.
 realm join --one-time-password='<%= @host.otp || "$HOST[OTP]" %>' <%= @host.realm %>
 <% end -%>
@@ -164,7 +165,7 @@ redhat-lsb-core
 salt-minion
 <% end -%>
 
-<%# Below are not part of the standard ks template -%>
+<%# Below are not part of the default satellite ks template -%>
 policycoreutils-restorecond
 vim
 yum-utils
@@ -198,7 +199,7 @@ exec < /dev/tty3 > /dev/tty3
 /usr/bin/chvt 3
 (
 <% if subnet.respond_to?(:dhcp_boot_mode?) || @host.subnet6.respond_to?(:dhcp_boot_mode?) -%>
-<%= snippet 'kickstart_networking_setup' %>
+<%= snippet 'GatwardIT-snippet_kickstart_networking_setup' %>
 <% end -%>
 
 echo "++++++++++++++++++++++++++++ Setting System Time ++++++++++++++++++++++++++++++"
@@ -216,10 +217,11 @@ echo 'proxy = <%= proxy_uri %>' >> /etc/yum.conf
 <% end -%>
 
 <% if rhel_compatible && !host_param_false?('enable-epel') -%>
-echo "++++++++++++++++++++++++++++ Enabling EPEL Repository +++++++++++++++++++++++++"
-<%= snippet 'epel' -%>
+echo "++++++++++++++++++++ Enabling Upstream EPEL Repository ++++++++++++++++++++++++"
+<%= snippet 'GatwardIT-snippet_epel' -%>
 <% end -%>
 
+<%# This snippet contains logic to simply return if host is not RedHat and no registration applies %>
 <%= snippet 'GatwardIT-snippet_redhat_register' %>
 
 <% if host_enc['parameters']['realm'] && @host.realm && (@host.realm.realm_type == 'FreeIPA' || @host.realm.realm_type == 'Red Hat Identity Management') -%>
@@ -237,20 +239,17 @@ else
 fi
 <% end -%>
 
-<%= snippet('remote_execution_ssh_keys') %>
+<%= snippet 'GatwardIT-snippet_remote_execution_ssh_keys' %>
 
-<%= snippet "blacklist_kernel_modules" %>
+<%= snippet 'GatwardIT-snippet_blacklist_kernel_modules' %>
 
-<% if chef_enabled %>
-<%= snippet 'chef_client' %>
-<% end -%>
 
 <% if puppet_enabled %>
 echo "++++++++++++++++++++++++++++ Install Puppet agent +++++++++++++++++++++++++++++"
 <% if host_param_true?('enable-puppetlabs-pc1-repo') || host_param_true?('enable-puppetlabs-repo') || host_param_true?('enable-puppetlabs-puppet5-repo') -%>
-<%= snippet 'puppetlabs_repo' %>
+<%= snippet 'GatwardIT-snippet_puppetlabs_repo' %>
 <% end -%>
-<%= snippet 'puppet_setup' %>
+<%= snippet 'GatwardIT-snippet_puppet_setup' %>
 <% end -%>
 
 <% if salt_enabled %>
@@ -263,7 +262,7 @@ yum -t -y remove kernel-uek*
 sed -e 's/DEFAULTKERNEL=kernel-uek/DEFAULTKERNEL=kernel/g' -i /etc/sysconfig/kernel
 <% end -%>
 
-<%= snippet('ansible_provisioning_callback') %>
+<%= snippet 'GatwardIT-snippet_ansible_provisioning_callback' %>
 
 sync
 
