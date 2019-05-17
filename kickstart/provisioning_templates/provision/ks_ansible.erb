@@ -93,9 +93,9 @@ firewall --disable
 firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
 <% end -%>
 <% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major > 7) -%>
-authselect --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha256' %> --kickstart
+authselect --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha512' %> --kickstart
 <% else -%>
-authconfig --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha256' %> --kickstart
+authconfig --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha512' %> --kickstart
 <% end -%>
 <% if use_ntp -%>
 timezone --utc <%= host_param('time-zone') || 'UTC' %>
@@ -166,7 +166,6 @@ salt-minion
 <% end -%>
 
 <%# Below are not part of the default satellite ks template -%>
-policycoreutils-restorecond
 vim
 yum-utils
 -iwl*

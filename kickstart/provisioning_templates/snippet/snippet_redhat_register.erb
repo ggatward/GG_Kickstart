@@ -161,6 +161,9 @@ snippet: true
 
   <% elsif activation_key %>
     subscription-manager register --name="<%= @host.name %>" --org='<%= subscription_manager_org %>' --activationkey='<%= activation_key %>'
+    <% if host_param_true?('subscription_manager_autoattach') %>
+    subscription-manager attach --auto
+    <% end %>
   <% else %>
     echo "No activation key found: Not registering to subscription manager"
   <% end %>

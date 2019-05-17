@@ -64,6 +64,7 @@ The following Foreman parameters are used in this kickstart:
 - subscription_manager_org = <org name>         Organization name, if required
 - subscription_manager_repos = <repos>          Additional repositories to enable after registration (e.g. sat-tools, epel)
 - subscription_manager_pool = <pool>            Specific subscription pool to use (Not used with AK)
+- subscription_manager_autoattach = [true|false] Run auto attach after registration
 - syspurpose_role                               Sets the system purpose role
 - syspurpose_usage                              Sets the system purpose usage
 - syspurpose_sla                                Sets the system purpose SLA
@@ -77,7 +78,6 @@ The following Foreman parameters are used in this kickstart:
 # Remote Execution & Ansible role integration parameters
 - remote_execution_create_user = [true|false]   Create user if it doesnt exist [Default: false]
 - remote_execution_ssh_user = <username>        Username for SSH (Ansible) user
-- remote_execution_ssh_keys = <key>             Public SSH key for REX user
 - remote_execution_effective_user_method = <string>  Method for privilege escalation (e.g. sudo) [Default: ""]
 
 # Parameters for use with Ansible Tower provisioning callback
