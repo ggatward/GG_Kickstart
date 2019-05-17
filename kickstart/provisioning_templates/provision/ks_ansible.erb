@@ -107,12 +107,6 @@ timezone --utc <%= host_param('time-zone') || 'UTC' %> <%= host_param('ntp-serve
 services --disabled gpm,sendmail,cups,pcmcia,isdn,rawdevices,hpoj,bluetooth,openibd,avahi-daemon,avahi-dnsconfd,hidd,hplip,pcscd
 <% end -%>
 
-<% if realm_compatible && host_enc['parameters']['realm'] && @host.realm && @host.realm.realm_type == 'Active Directory' -%>
-echo "+++++++++++++++++++++++ Joining Active Directory Domain ++++++++++++++++++++++++"
-# One-time password will be requested at install time. Otherwise, $HOST[OTP] is used as a placeholder value.
-realm join --one-time-password='<%= @host.otp || "$HOST[OTP]" %>' <%= @host.realm %>
-<% end -%>
-
 <% if @host.operatingsystem.name == 'Fedora' -%>
 repo --name=fedora-everything --mirrorlist=https://mirrors.fedoraproject.org/metalink?repo=fedora-<%= @host.operatingsystem.major %>&arch=<%= @host.architecture %><%= proxy_string %>
 <% end -%>
@@ -231,6 +225,11 @@ echo "++++++++++++++++++++ Enabling Upstream EPEL Repository +++++++++++++++++++
 <% if host_enc['parameters']['realm'] && @host.realm && (@host.realm.realm_type == 'FreeIPA' || @host.realm.realm_type == 'Red Hat Identity Management') -%>
 echo "++++++++++++++++++++++++++++ Configuring IPA Client +++++++++++++++++++++++++++"
 <%= snippet 'GatwardIT-freeipa_register' %>
+<% end -%>
+
+<% if host_param('ad_realm') -%>
+echo "+++++++++++++++++++++++ Joining Active Directory Domain ++++++++++++++++++++++++"
+<%= snippet 'GatwardIT-ad_register' %>
 <% end -%>
 
 <% unless host_param_false?('package_upgrade') -%>

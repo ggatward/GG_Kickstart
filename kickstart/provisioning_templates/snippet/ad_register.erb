@@ -1,0 +1,49 @@
+<%#
+kind: snippet
+name: GatwardIT-ad_register
+model: ProvisioningTemplate
+snippet: true
+%>
+echo "++++++++++++++++++++++++++ AD Join Snippet +++++++++++++++++++++++++++++"
+
+if [ -f /usr/bin/dnf ]; then
+  dnf -y install sssd sssd-ad adcli realmd samba-common samba-common-tools krb5-workstation
+else
+  yum -t -y install sssd sssd-ad adcli realmd samba-common samba-common-tools krb5-workstation
+fi
+
+# Ensure hostname is set
+hostnamectl set-hostname <%= @host %>
+
+# This MUST come before the realm command to be effective
+cat > /etc/realmd.conf << EOF
+[users]
+  default-home = /home/%U
+  default-shell = /bin/bash
+
+# Don't allow AD to control access
+[<%= host_param('ad_realm').downcase %>]
+  manage-system = no
+  # We must disable auto-mapping so that AD defined UID/GID are set
+  automatic-id-mapping = no
+EOF
+
+# To avoid computer object conflicts in AD we need to add a prefix to differentiate same hostnames in AD.
+# NOTE - this limits the usable hostname to 13 characters, as AD truncates at 15 and we are prefixing 2.
+if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
+  adhostname=q-$(hostname -s)
+elif [ $(hostname -f | grep -c '.test.') -eq 1 ]; then
+  adhostname=t-$(hostname -s)
+else
+  adhostname=$(hostname -s)
+fi
+
+echo '<%= host_param('ad_join_passwd')%>' | realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad') %> --unattended --install=/ --computer-name $adhostname
+
+# Allow any AD user to login - we can control access through access.conf if we need to
+echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
+
+# Update sssd config for AD
+sed -i '/services = nss, pam/a default_domain_suffix = <%= host_param('ad_realm').downcase %>' /etc/sssd/sssd.conf
+sed -i 's/fallback_homedir.*/fallback_homedir = \/home\/%u/' /etc/sssd/sssd.conf
+sed -i '/default_domain_suffix = <%= host_param('ad_realm').downcase %>/a full_name_format = %1$s' /etc/sssd/sssd.conf
