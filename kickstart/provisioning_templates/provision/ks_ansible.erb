@@ -201,6 +201,11 @@ exec < /dev/tty3 > /dev/tty3
 <%= snippet 'GatwardIT-snippet_kickstart_networking_setup' %>
 <% end -%>
 
+echo "+++++++++++++++++++++ Generating secure SSH host keys +++++++++++++++++++++++++"
+rm -f /etc/ssh/ssh_host_{ecdsa,rsa}_key*
+ssh-keygen -q -t ecdsa -b 384 -f /etc/ssh/ssh_host_ecdsa_key -C '' -N ''
+ssh-keygen -q -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -C '' -N ''
+
 echo "++++++++++++++++++++++++++++ Setting System Time ++++++++++++++++++++++++++++++"
 <% if use_ntp -%>
 /usr/sbin/ntpdate -sub <%= host_param('ntp-server') || '0.fedora.pool.ntp.org' %>
@@ -241,6 +246,11 @@ fi
 <%= snippet 'GatwardIT-snippet_remote_execution_ssh_keys' %>
 
 <%= snippet 'GatwardIT-snippet_blacklist_kernel_modules' %>
+
+# Call entry snippet for traditional snippet-based installation
+<% if host_param('extra_snippet_entry') %>
+<%= snippet '<%= host_param('extra_snippet_entry') %>' %>
+<% end %>
 
 
 <% if puppet_enabled %>
