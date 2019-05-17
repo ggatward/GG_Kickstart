@@ -1,6 +1,6 @@
 <%#
 kind: snippet
-name: GatwardIT-snippet_puppet_setup
+name: GatwardIT-puppet_setup
 model: ProvisioningTemplate
 snippet: true
 %>
@@ -67,21 +67,21 @@ Start-Process 'msiexec.exe' -ArgumentList $puppet_install_args -Wait -NoNewWindo
 <% end -%>
 
 <% if os_family == 'Windows' -%>
-$puppet_conf = @("<%= snippet 'GatwardIT-snippet_puppet.conf' %>".Replace("`n","`r`n"))
+$puppet_conf = @("<%= snippet 'GatwardIT-puppet.conf' %>".Replace("`n","`r`n"))
 Out-File -FilePath <%= etc_path %>\puppet.conf -InputObject $puppet_conf
 <% else -%>
 cat > <%= etc_path %>/puppet.conf << EOF
-<%= snippet 'GatwardIT-snippet_puppet.conf' %>
+<%= snippet 'GatwardIT-puppet.conf' %>
 EOF
 <% end -%>
 
 <% if @host.puppetca_token.present? -%>
 <% if os_family == 'Windows' -%>
-$csr_attributes = @("<%= snippet 'GatwardIT-snippet_csr_attributes.yaml' %>".Replace("`n","`r`n"))
+$csr_attributes = @("<%= snippet 'GatwardIT-csr_attributes.yaml' %>".Replace("`n","`r`n"))
 Out-File -FilePath <%= etc_path %>\csr_attributes.yaml -InputObject $csr_attributes
 <% else -%>
 cat > <%= etc_path %>/csr_attributes.yaml << EOF
-<%= snippet 'GatwardIT-snippet_csr_attributes.yaml' %>
+<%= snippet 'GatwardIT-csr_attributes.yaml' %>
 EOF
 <% end -%>
 <% end -%>

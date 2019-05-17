@@ -198,7 +198,7 @@ exec < /dev/tty3 > /dev/tty3
 /usr/bin/chvt 3
 (
 <% if subnet.respond_to?(:dhcp_boot_mode?) || @host.subnet6.respond_to?(:dhcp_boot_mode?) -%>
-<%= snippet 'GatwardIT-snippet_kickstart_networking_setup' %>
+<%= snippet 'GatwardIT-kickstart_networking_setup' %>
 <% end -%>
 
 echo "+++++++++++++++++++++ Generating secure SSH host keys +++++++++++++++++++++++++"
@@ -222,15 +222,15 @@ echo 'proxy = <%= proxy_uri %>' >> /etc/yum.conf
 
 <% if rhel_compatible && !host_param_false?('enable-epel') -%>
 echo "++++++++++++++++++++ Enabling Upstream EPEL Repository ++++++++++++++++++++++++"
-<%= snippet 'GatwardIT-snippet_epel' -%>
+<%= snippet 'GatwardIT-epel' -%>
 <% end -%>
 
 <%# This snippet contains logic to simply return if host is not RedHat and no registration applies %>
-<%= snippet 'GatwardIT-snippet_redhat_register' %>
+<%= snippet 'GatwardIT-redhat_register' %>
 
 <% if host_enc['parameters']['realm'] && @host.realm && (@host.realm.realm_type == 'FreeIPA' || @host.realm.realm_type == 'Red Hat Identity Management') -%>
 echo "++++++++++++++++++++++++++++ Configuring IPA Client +++++++++++++++++++++++++++"
-<%= snippet 'GatwardIT-snippet_freeipa_register' %>
+<%= snippet 'GatwardIT-freeipa_register' %>
 <% end -%>
 
 <% unless host_param_false?('package_upgrade') -%>
@@ -243,22 +243,22 @@ else
 fi
 <% end -%>
 
-<%= snippet 'GatwardIT-snippet_remote_execution_ssh_keys' %>
+<%= snippet 'GatwardIT-remote_execution_ssh_keys' %>
 
-<%= snippet 'GatwardIT-snippet_blacklist_kernel_modules' %>
+<%= snippet 'GatwardIT-blacklist_kernel_modules' %>
 
-# Call entry snippet for traditional snippet-based installation
+<%# Call entry snippet for traditional snippet-based installation %>
 <% if host_param('extra_snippet_entry') %>
+echo "+++++++++++++++++++++ Running snippet based provisioning ++++++++++++++++++++++"
 <%= snippet host_param('extra_snippet_entry') %>
 <% end %>
-
 
 <% if puppet_enabled %>
 echo "++++++++++++++++++++++++++++ Install Puppet agent +++++++++++++++++++++++++++++"
 <% if host_param_true?('enable-puppetlabs-pc1-repo') || host_param_true?('enable-puppetlabs-repo') || host_param_true?('enable-puppetlabs-puppet5-repo') -%>
-<%= snippet 'GatwardIT-snippet_puppetlabs_repo' %>
+<%= snippet 'GatwardIT-puppetlabs_repo' %>
 <% end -%>
-<%= snippet 'GatwardIT-snippet_puppet_setup' %>
+<%= snippet 'GatwardIT-puppet_setup' %>
 <% end -%>
 
 <% if salt_enabled %>
@@ -271,7 +271,7 @@ yum -t -y remove kernel-uek*
 sed -e 's/DEFAULTKERNEL=kernel-uek/DEFAULTKERNEL=kernel/g' -i /etc/sysconfig/kernel
 <% end -%>
 
-<%= snippet 'GatwardIT-snippet_ansible_provisioning_callback' %>
+<%= snippet 'GatwardIT-ansible_provisioning_callback' %>
 
 sync
 
