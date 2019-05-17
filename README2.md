@@ -23,6 +23,10 @@ The following Foreman parameters are used in this kickstart:
 - package_upgrade = [true|false]                Perform full package update during build [Default: true]
 
 ##################################################################################
+# Snippet-based provisioning
+- extra_snippet_entry = <string>      Name of the snippet used as the entrypoint to remaining snippets
+
+##################################################################################
 #
 # EPEL repository handling - - don't use these parameters if EPEL provided by Satellite
 - enable-epel = [true|false]                    Enable internet EPEL repository [Default: false]
