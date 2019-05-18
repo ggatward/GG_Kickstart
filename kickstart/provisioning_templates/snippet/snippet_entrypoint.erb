@@ -5,3 +5,77 @@ model: ProvisioningTemplate
 snippet: true
 -%>
 echo "Legacy provisioning snippets can be defined from this entrypoint snippet"
+
+
+<% if host_param('ad_realm') -%>
+echo "+++++++++++++++++++++++ Joining Active Directory Domain +++++++++++++++++++++++"
+<%= snippet 'GatwardIT-Xsnippet_ad_register' %>
+<% end -%>
+
+echo "++++++++++++++++++++++++++ Fixing NTP sources +++++++++++++++++++++++++++++++++"
+<% if use_ntp -%>
+  ntp_config='/etc/ntp.conf'
+<% else -%>
+  ntp_config='/etc/chrony.conf'
+<% end -%>
+sed -i 's/^server 0.*/server ntp1.core.home.gatwards.org iburst/' $ntp_config
+sed -i 's/^server 1.*/server ntp2.core.home.gatwards.org iburst/' $ntp_config
+sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' $ntp_config
+sed -i '/^server 3.*/d' $ntp_config
+
+
+<%# Check if we are a VMware guest - if so then install the tools %>
+if [ "$(virt-what)" == "vmware" ]; then
+  echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
+  echo ">>> Installing VMware tools..."
+  yum -q -y install open-vm-tools
+  systemctl enable vmtoolsd
+elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
+  echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
+  echo ">>> Installing ovirt guest agent..."
+  <% if @host.operatingsystem.name == "RedHat" -%>
+    subscription-manager repos --enable rhel-*-server-rh-common-rpms
+  <% end -%>
+  yum -q -y install ovirt-guest-agent
+  systemctl enable ovirt-guest-agent
+fi
+
+<%# Install root CA certs %>
+<%= snippet "GatwardIT-Xsnippet_trust_certs" %>
+
+<%# Configure misc tooling %>
+<%= snippet "GatwardIT-Xsnippet_misc" %>
+
+<%# If 'auto_update' host parameter is defined, configure yum-cron %>
+<% if host_param_true?('auto_update') -%>
+  <%= snippet "GatwardIT-Xsnippet_autoupdate" %>
+<% end -%>
+
+<%# If the 'server_gui' host parameter is defined, install the GUI components %>
+<% if host_param_true?('server_gui') -%>
+  <%= snippet "GatwardIT-Xsnippet_gui" %>
+<% end -%>
+
+<%# If the 'nessus_agent' host parameter is defined, install the Nessus Scanner Agent %>
+<% if host_param('nessus_host') -%>
+  <%= snippet "GatwardIT-Xsnippet_nessus" %>
+<% end -%>
+
+<%# If the 'splunk_host' host parameter is defined, install the splunkforwarder package %>
+<% if host_param('splunk_host') -%>
+  <% snippet "GatwardIT-Xsnippet_splunkforwarder" %>
+<% end -%>
+
+<%# Apply initial static ISM hardening - can be overridden if needed %>
+<%= snippet "GatwardIT-Xsnippet_ISM" %>
+
+<%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>
+echo "+++++++++++++++++++++++++++ Kernel configuration ++++++++++++++++++++++++++++++"
+echo ">>> Rebuilding grub2 config..."
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+<%# After disabling kernel modules during hardening, a new initramfs needs to be created %>
+echo ">>> Rebuilding initramfs..."
+KERNEL_VERSION=$(rpm -q kernel --qf '%{version}-%{release}.%{arch}\n' | tail -n 1)
+echo $KERNEL_VERSION
+dracut -f /boot/initramfs-$KERNEL_VERSION.img $KERNEL_VERSION

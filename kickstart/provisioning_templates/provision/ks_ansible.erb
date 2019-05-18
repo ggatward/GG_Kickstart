@@ -210,7 +210,6 @@ echo "++++++++++++++++++++++++++++ Setting System Time +++++++++++++++++++++++++
 
 <% if proxy_uri -%>
 echo "++++++++++++++++++++++++++++ Setting Yum Proxy ++++++++++++++++++++++++++++++++"
-# Yum proxy
 echo 'proxy = <%= proxy_uri %>' >> /etc/yum.conf
 <% end -%>
 
@@ -225,11 +224,6 @@ echo "++++++++++++++++++++ Enabling Upstream EPEL Repository +++++++++++++++++++
 <% if host_enc['parameters']['realm'] && @host.realm && (@host.realm.realm_type == 'FreeIPA' || @host.realm.realm_type == 'Red Hat Identity Management') -%>
 echo "++++++++++++++++++++++++++++ Configuring IPA Client +++++++++++++++++++++++++++"
 <%= snippet 'GatwardIT-freeipa_register' %>
-<% end -%>
-
-<% if host_param('ad_realm') -%>
-echo "+++++++++++++++++++++++ Joining Active Directory Domain ++++++++++++++++++++++++"
-<%= snippet 'GatwardIT-ad_register' %>
 <% end -%>
 
 <% unless host_param_false?('package_upgrade') -%>

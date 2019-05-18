@@ -1,11 +1,8 @@
 <%#
 kind: snippet
-name: GatwardIT-snippet_gui
-locations:
-- Home
-organizations:
-- GatwardIT
-- MyOrg
+name: GatwardIT-Xsnippet_gui
+model: ProvisioningTemplate
+snippet: true
 %>
 echo "++++++++++++++++++++++ GUI Installation/Configure Snippet +++++++++++++++++++++"
 
@@ -215,7 +212,20 @@ chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
 # Copy global default configuration
 mkdir -p /etc/skel/.ICAClient/cache/Stores
 cat << EOF > /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
-<%= snippet "GatwardIT-config_citrix" %>
+<StoreCache>
+  <DefaultStore>https://citrix.example.com/config.xml</DefaultStore>
+  <ReconnectOnLogon>False</ReconnectOnLogon>
+  <ReconnectOnLaunchOrRefresh>False</ReconnectOnLaunchOrRefresh>
+  <SharedUserMode>False</SharedUserMode>
+  <FullscreenMode>0</FullscreenMode>
+  <SelfSelection>True</SelfSelection>
+  <SessionWindowedMode>False</SessionWindowedMode>
+  <VisibleStores>
+    <Store name="https://citrix.example.com/config.xml" type="PNA">
+      https://citrix.exmaple.com/config.xml
+    </Store>
+  </VisibleStores>
+</StoreCache>
 EOF
 chmod 644 /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
 
