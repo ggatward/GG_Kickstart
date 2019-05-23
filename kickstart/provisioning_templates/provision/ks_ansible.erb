@@ -240,6 +240,22 @@ fi
 
 <%= snippet 'GatwardIT-blacklist_kernel_modules' %>
 
+<% if host_param_true?('luks') %>
+  echo "++++++++++++++++++++++++++++ Configuring NBDE +++++++++++++++++++++++++++++++"
+  # Determine the crypt block device
+  cryptdev=$(for i in $(lsblk -l --output NAME); do if [ $(cryptsetup isLuks /dev/$i 2>/dev/null; echo $?) -eq 0 ]; then echo /dev/$i; fi; done)
+  echo "Crypt device = ${cryptdev}"
+  yum -q -y install clevis-dracut
+  # Wipe any existing luks metadata from slots 1-7 (passphrase is in slot 0)
+  for slot in 1 2 3 4 5 6 7; do
+    luksmeta wipe -d ${cryptdev} -s ${slot} -f
+  done
+  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server1') %>","thp":"<%= host_param('luks-tang-key1') %>"}' <<< <%= host_param('luks-passphrase') %>
+  clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server2') %>","thp":"<%= host_param('luks-tang-key2') %>"}' <<< <%= host_param('luks-passphrase') %>
+#  cryptsetup luksRemoveKey ${cryptdev} - <<< <%= host_param('luks-passphrase') %>
+<% end %>
+
+
 <%# Call entry snippet for traditional snippet-based installation %>
 <% if host_param('extra_snippet_entry') %>
 echo "+++++++++++++++++++++ Running snippet based provisioning ++++++++++++++++++++++"
@@ -265,6 +281,15 @@ sed -e 's/DEFAULTKERNEL=kernel-uek/DEFAULTKERNEL=kernel/g' -i /etc/sysconfig/ker
 <% end -%>
 
 <%= snippet 'GatwardIT-ansible_provisioning_callback' %>
+
+<%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>
+echo "+++++++++++++++++++++ Reconfiguring Grub and Kernel +++++++++++++++++++++++++++"
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+<%# After disabling kernel modules during hardening, a new initramfs needs to be created %>
+KERNEL_VERSION=$(rpm -q kernel --qf '%{version}-%{release}.%{arch}\n' | tail -n 1)
+echo $KERNEL_VERSION
+dracut -f /boot/initramfs-$KERNEL_VERSION.img $KERNEL_VERSION
 
 sync
 

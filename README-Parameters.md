@@ -24,6 +24,17 @@ The following Foreman parameters are used in the baseline component of this kick
 
 ##################################################################################
 #
+# Disk encryption parameters
+- luks = [true|false]                           Encrypt boot device with LUKS and NBDE [Default: false]
+- luks-passphrase = <password>                  Passphrase for local disk unlock
+- luks-tang-server1 = <fqdn>                    FQDN of Tang server #1
+- luks-tang-key1 = <string>                     Shared key for tang server #1
+- luks-tang-server2 = <fqdn>                    FQDN of Tang server #2
+- luks-tang-key2 = <string>                     Shared key for tang server #2
+
+
+##################################################################################
+#
 # Snippet-based provisioning
 - extra_snippet_entry = <string>      Name of the snippet used as the entrypoint to remaining snippets
 
