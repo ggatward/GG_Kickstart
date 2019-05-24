@@ -31,6 +31,7 @@ The following Foreman parameters are used in the baseline component of this kick
 - luks-tang-key1 = <string>                     Shared key for tang server #1
 - luks-tang-server2 = <fqdn>                    FQDN of Tang server #2
 - luks-tang-key2 = <string>                     Shared key for tang server #2
+- luks-remove-passphrase = [true|false]         Remove local LUKS passphrase when using NBDE [Default: false]
 
 
 ##################################################################################

@@ -41,7 +41,9 @@ elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
   echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
   echo ">>> Installing ovirt guest agent..."
   <% if @host.operatingsystem.name == "RedHat" -%>
-    subscription-manager repos --enable rhel-*-server-rh-common-rpms
+    <% if os_major <= 7 -%>
+      subscription-manager repos --enable rhel-*-server-rh-common-rpms
+    <% end -%>
   <% end -%>
   yum -q -y install ovirt-guest-agent
   systemctl enable ovirt-guest-agent

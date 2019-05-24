@@ -38,7 +38,10 @@ else
 fi
 
 echo ">>> Installing other common tools"
-yum -q -y install git tree iotop vim iptraf htop dstat dropwatch iptstate bash-completion bash-completion-extras
+yum -q -y install git tree iotop vim iptraf htop dstat dropwatch bash-completion
+if [ $(yum repolist | grep -ic epel) -ne 0 ]; then
+  yum -q -y install bash-completion-extras htop iptstate
+fi
 
 <% if host_param_true?('add_ansible_user') %>
   echo ">>> Adding service account for Ansible"

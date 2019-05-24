@@ -20,8 +20,8 @@ cat << EOF > /etc/sysctl.conf
 kernel.exec-shield = 1
 # Use process address space and heap randomisation
 kernel.randomize_va_space = 2
-# Prevent core dumps being created by suid binaries
-fs.suid_dumptable = 0
+# Prevent core dumps being created by suid binaries (EL6 only?)
+#fs.suid_dumptable = 0
 
 # Network hardening parameters
 net.ipv4.conf.all.forwarding = 0
@@ -203,10 +203,16 @@ fi
 <%# ---------------------------- AUDIT SECTION --------------------------------%>
 echo ">>> Configure audit"
 # Configure system to use audispd plugin to pass audit events to syslog for streaming
-sed -i 's/active = no/active = yes/g' /etc/audisp/plugins.d/syslog.conf
+if [ $(grep -c '8.' /etc/redhat-release) -eq 1 ]; then
+  yum -q -y install audispd-plugins
+  syslog_conf=/etc/audit/plugins.d/syslog.conf
+else
+  syslog_conf=/etc/audisp/plugins.d/syslog.conf
+fi
 
 # Redirect audit to LOCAL0 facility so it can be suppressed from /var/log/messages
-sed -i 's/args = .*/args = LOG_LOCAL0/g' /etc/audisp/plugins.d/syslog.conf
+sed -i 's/active = no/active = yes/g' ${syslog_conf}
+sed -i 's/args = .*/args = LOG_LOCAL0/g' ${syslog_conf}
 
 # Configure how auditd sends events
 ### SYNC flushing causes performance hits with slower disk IO
@@ -470,13 +476,16 @@ echo ">>> Disable Ctrl-Alt-Del"
 systemctl mask ctrl-alt-del.target && systemctl daemon-reload
 
 <%# Disable and/or remove not-required services %>
+<% if os_major == 6 -%>
 echo ">>> Disabling services"
 for service in abrtd abrt-oops; do
   systemctl disable ${service}
 done
+<% end -%>
 yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 
 <%# On physical servers only enable HW Random Number Generator %>
+## TODO:  Fix 7.6+ support of rngd
 if [ "$(virt-what)" == "" ]; then
   echo ">>> Enabling Hardware RNG"
   yum -q -y install rng-tools
@@ -486,9 +495,3 @@ else
   yum -q -y install haveged
   systemctl enable haveged
 fi
-
-
-<%# ------------------------- ANTIVIRUS SECTION ----------------------------%>
-<% if host_param('sophos') %>
-  <%= snippet "GatwardIT-snippet_sophos" %>
-<% end %>
