@@ -246,20 +246,21 @@ fi
     # Determine the crypt block device
     cryptdev=$(for i in $(lsblk -l --output NAME); do if [ $(cryptsetup isLuks /dev/$i 2>/dev/null; echo $?) -eq 0 ]; then echo /dev/$i; fi; done)
     echo "Crypt device = ${cryptdev}"
-    yum -q -y install clevis-dracut
+    yum -q -y install clevis clevis-dracut clevis-luks
     # Wipe any existing luks metadata from slots 1-7 (passphrase is in slot 0)
     for slot in 1 2 3 4 5 6 7; do
       luksmeta wipe -d ${cryptdev} -s ${slot} -f
     done
     <% if host_param('luks-tang-server1') %>
-      clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server1') %>","thp":"<%= host_param('luks-tang-key1') %>"}' <<< <%= host_param('luks-passphrase') %>
+      clevis luks bind -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server1') %>","thp":"<%= host_param('luks-tang-key1') %>"}' <<< <%= host_param('luks-passphrase') %>
     <% end %>
     <% if host_param('luks-tang-server2') %>
-      clevis bind luks -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server2') %>","thp":"<%= host_param('luks-tang-key2') %>"}' <<< <%= host_param('luks-passphrase') %>
+      clevis luks bind -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server2') %>","thp":"<%= host_param('luks-tang-key2') %>"}' <<< <%= host_param('luks-passphrase') %>
     <% end %>
     <% if host_param_true?('luks-remove-passphrase') %>
       cryptsetup luksRemoveKey ${cryptdev} - <<< <%= host_param('luks-passphrase') %>
     <% end %>
+    echo 'omit_dracutmodules+="ifcfg"' > /etc/dracut.conf.d/99-disable_ifcfg.conf
   <% end %>
 <% end %>
 
