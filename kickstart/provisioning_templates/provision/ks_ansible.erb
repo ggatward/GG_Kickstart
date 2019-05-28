@@ -142,6 +142,7 @@ reboot
 
 %packages
 yum
+yum-utils
 dhclient
 <% if use_ntp -%>
 ntp
@@ -160,8 +161,6 @@ salt-minion
 <% end -%>
 
 <%# Below are not part of the default satellite ks template -%>
-vim
-yum-utils
 -iwl*
 -ivtv*
 <%= section_end -%>
@@ -240,7 +239,8 @@ fi
 
 <%= snippet 'GatwardIT-blacklist_kernel_modules' %>
 
-<% if host_param_true?('luks') %>
+<%# Clevis & Tang exist only in Fedora 27+ and RHEL/CentOS 7.5+ %>
+<% if host_param_true?('luks') && ((@host.operatingsystem.name == 'Fedora' && os_major >= 27) || (rhel_compatible && ((os_major >= 7 && os_minor >= 5) || os_major >= 8))) %>
   <% if host_param('luks-tang-server1') || host_param('luks-tang-server2') %>
     echo "++++++++++++++++++++++++++++ Configuring NBDE +++++++++++++++++++++++++++++++"
     # Determine the crypt block device
@@ -290,15 +290,22 @@ sed -e 's/DEFAULTKERNEL=kernel-uek/DEFAULTKERNEL=kernel/g' -i /etc/sysconfig/ker
 
 <%= snippet 'GatwardIT-ansible_provisioning_callback' %>
 
-<%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>
-echo "+++++++++++++++++++++ Reconfiguring Grub and Kernel +++++++++++++++++++++++++++"
-grub2-mkconfig -o /boot/grub2/grub.cfg
+<% if (@host.operatingsystem.name == 'Fedora' && os_major >= 20) || (rhel_compatible && os_major >= 7) %>
+  <%# If we have updated any kernel params during hardening, we need to rebuild the grub config %>
+  echo "+++++++++++++++++++++ Reconfiguring Grub and Kernel +++++++++++++++++++++++++++"
+  grub2-mkconfig -o /boot/grub2/grub.cfg
 
-<%# After disabling kernel modules during hardening, a new initramfs needs to be created %>
-KERNEL_VERSION=$(rpm -q kernel --qf '%{version}-%{release}.%{arch}\n' | tail -n 1)
-echo $KERNEL_VERSION
-#dracut -f /boot/initramfs-$KERNEL_VERSION.img $KERNEL_VERSION
-dracut -f /boot/initramfs-$KERNEL_VERSION.img --kernel-cmdline '<%= "ip=#{@host.ip} netmask=#{subnet.mask} gateway=#{subnet.gateway} nameserver=#{[subnet.dns_primary, subnet.dns_secondary].select{ |item| item.present? }.join(',')}" -%>' $KERNEL_VERSION
+  <%# After updating kernel modules during hardening, a new initramfs needs to be created %>
+  <% if dhcp %>
+    dracut -f --regenerate-all
+  <% else %>
+    <% if rhel_compatible && os_major == 7 %>
+      dracut -f --regenerate-all --kernel-cmdline "<%= "ip=#{@host.ip} netmask=#{subnet.mask} gateway=#{subnet.gateway} nameserver=#{subnet.dns_primary} nameserver=#{subnet.dns_secondary}" -%>"
+    <% else %>
+      dracut -f --regenerate-all --kernel-cmdline "<%= "ip=#{@host.ip}::#{subnet.gateway}:#{subnet.mask}::eth0:none nameserver=#{subnet.dns_primary} nameserver=#{subnet.dns_secondary}" -%>"
+    <% end %>
+  <% end %>
+<% end %>
 
 sync
 

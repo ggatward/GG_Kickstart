@@ -22,7 +22,7 @@ organizations:
 
 <%# RHEL8 supports LUKS2 encryption %>
 <% if @host.operatingsystem.major.to_i >= 8 %>
-  <% luksver = "--luks-version=luks2" %>
+  <% luksver = "--luks-version=luks1" %>
 <% else %>
   <% luksver = "" %>
 <% end %>

@@ -31,7 +31,7 @@ sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' $ntp_config
 sed -i '/^server 3.*/d' $ntp_config
 
 
-<%# Check if we are a VMware guest - if so then install the tools %>
+<%# Check if we are a virtual guest - if so then install the tools %>
 if [ "$(virt-what)" == "vmware" ]; then
   echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
   echo ">>> Installing VMware tools..."
@@ -48,6 +48,12 @@ elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
   yum -q -y install ovirt-guest-agent
   systemctl enable ovirt-guest-agent
 fi
+
+<%# Disable Transparent Huge Pages %>
+<% if host_param_true?('disable_thp') -%>
+  echo ">>> Disabling Transparent Huge Pages kernel option"
+  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb transparent_hugepage=never/}' /etc/default/grub
+<% end %>
 
 <%# Install root CA certs %>
 <%= snippet "GatwardIT-Xsnippet_trust_certs" %>

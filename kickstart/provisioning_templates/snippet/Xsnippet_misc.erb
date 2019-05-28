@@ -6,7 +6,7 @@ snippet: true
 %>
 echo "+++++++++++++++++ Misc Tools and Configuration Snippet ++++++++++++++++++++++++"
 
-echo ">>> Installing packages..."
+echo ">>> Installing filesystem support packages..."
 yum -q -y install autofs nfs-utils samba-client samba-common cifs-utils
 
 echo ">>> Configuring network mount points"
@@ -17,16 +17,25 @@ cat << EOF > /usr/local/bin/mounts.sh
 sudo /bin/mount -t cifs -o user=\$USER,cruid=\$USER,uid=\$USER,sec=krb5 //nas1.core.home.gatwards.org/volume1/\$USER
 EOF
 
+
+
+echo ">>> Installing other common tools"
+yum -q -y install git tree iotop vim iptraf htop dstat dropwatch bash-completion
+if [ $(yum repolist | grep -ic epel) -ne 0 ]; then
+  yum -q -y install bash-completion-extras htop iptstate
+fi
+
+
+
 echo ">>> Configure mail relay"
 sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.home.gatwards.org/' /etc/postfix/main.cf
+
+
 
 echo ">>> Removing rhgb kernel option"
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub
 
-<% if host_param_true?('disable_thp') -%>
-  echo ">>> Disabling Transparent Huge Pages kernel option"
-  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb transparent_hugepage=never/}' /etc/default/grub
-<% end %>
+
 
 echo ">>> Configuring root prompt"
 if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
@@ -37,11 +46,7 @@ else
   echo 'export PS1="\[\033[0;31m\]\u@\h\[\033[0;32m\][\w] #\[\033[0m\] "' >> /root/.bashrc
 fi
 
-echo ">>> Installing other common tools"
-yum -q -y install git tree iotop vim iptraf htop dstat dropwatch bash-completion
-if [ $(yum repolist | grep -ic epel) -ne 0 ]; then
-  yum -q -y install bash-completion-extras htop iptstate
-fi
+
 
 <% if host_param_true?('add_ansible_user') %>
   echo ">>> Adding service account for Ansible"
@@ -51,7 +56,6 @@ fi
   semanage fcontext -a -t ssh_home_t "/var/lib/svc-ansible/.ssh(/.*)?"
   cat << EOF > /var/lib/svc-ansible/.ssh/id_rsa.pub
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCdOX2mHAYz0crAugVxsnY5uxN8L8CFFVjYVLKVY8bqxzvTgPgmA4oL7YstsLDu9ZPUoHF6ySHJ3mbm98o1VuDzCtBkHK7W+BiyhfFGOsGyJuSafbIGqt8g384ejoZ76wUWKTaBiJm/b6efYEK44EHnga4Dg9d1VeVd+b/VZBd8fCK9AyJin1fJ+apv1YdHP5G/pmPmmp/x8D/14aEQKuqseoZRuskihygt/gyigoKPcAxoYFx8Ylv4o2kgJY/cvjE0t14IHmO1t+kNisQkMnoqtBeJBL6JajHY7DAysNws9JlzyoqCqSqXY3/+Oztco4KA7UHRHPlj1pg7J1sxmViCGotwHGEyx876Tdl71eWzumiC9Mdp3dc3KQNP+AKJs3+4YduL47wOmZGxzvDwrlJgzpONXWO3QFh2eEV0qWJPA7UR1azfn/mRucI8r/d12x803pB6Tj3weDHOLgBpZphPhVXGxMZokTB09A70UHKZvWXyPhhGDgtjY9MGxIB0TZmJyD634OBDJh1j6ufsQ3+YLy6qRc4inLaV67YQtq72rODqNUHB+Ppg/DCnKMjbq6KLcUmktNqCFI0WxOvKAAKFKMkd74r9szUxytscjPMKaKtPJJ48skcVK6GSOTfmHlf/pXgI+xYo0qlffPEnpTauAouq/zc2zTDZPexzFgYQ0Q== svc-ansible@tower.lab.home.gatwards.org
-
 EOF
   cp /var/lib/svc-ansible/.ssh/id_rsa.pub /var/lib/svc-ansible/.ssh/authorized_keys
   chown -R svc-ansible: /var/lib/svc-ansible
