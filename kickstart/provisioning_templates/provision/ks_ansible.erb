@@ -47,7 +47,7 @@ puppet_enabled = pm_set || host_param_true?('force-puppet')
 salt_enabled = host_param('salt_master') ? true : false
 chef_enabled = @host.respond_to?(:chef_proxy) && @host.chef_proxy
 section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
-use_ntp = host_param_true?('use-ntp') || (is_fedora && os_major < 16) || (rhel_compatible && os_major <= 7)
+use_ntp = host_param_true?('use-ntp') || (is_fedora && os_major < 16) || (rhel_compatible && os_major <= 6)
 %>
 <% if (is_fedora && os_major < 29) || (rhel_compatible && os_major <= 7) -%>
 install
@@ -148,6 +148,8 @@ dhclient
 ntp
 ntpdate
 <% else -%>
+-ntp
+-ntpdate
 chrony
 <% end -%>
 wget
@@ -202,7 +204,9 @@ ssh-keygen -q -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -C '' -N ''
 echo "++++++++++++++++++++++++++++ Setting System Time ++++++++++++++++++++++++++++++"
 <% if use_ntp -%>
 /usr/sbin/ntpdate -sub <%= host_param('ntp-server') || '0.fedora.pool.ntp.org' %>
+/usr/bin/systemctl disable chronyd --now
 <% else -%>
+/usr/bin/systemctl disable ntpd --now
 /usr/bin/chronyc makestep
 <% end -%>
 /usr/sbin/hwclock --systohc
