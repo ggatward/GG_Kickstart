@@ -230,6 +230,7 @@ sed -i 's/args = .*/args = LOG_LOCAL0/g' ${syslog_conf}
 sed -i 's/admin_space_left_action = SUSPEND/admin_space_left_action = SINGLE/g' /etc/audit/auditd.conf
 sed -i 's/disk_full_action = SUSPEND/disk_full_action = HALT/g' /etc/audit/auditd.conf
 sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/auditd.conf
+sed -i 's/disp_qos = .*/disp_qos = lossless/g' /etc/audit/auditd.conf
 
 # Load the audit rules
 cat << EOF > /etc/audit/rules.d/90-ism_audit.rules
@@ -368,7 +369,7 @@ done
 <%# ------------------------- DISABLE IPv6 SECTION ----------------------------%>
 echo ">>> Disable IPv6"
 
-cat >> /etc/sysctl.conf << EOL
+cat >> /etc/sysctl.d/20-ipv6.conf << EOL
 ##
 #  Ensure that the IPv6 kernel modules are included during OS instance build.
 #  Where possible, the use of IPv6 will be disabled in configuration of OS
@@ -376,13 +377,14 @@ cat >> /etc/sysctl.conf << EOL
 #
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
 EOL
-for ETH_INF in $(ls -1 /sys/class/net); do
-  echo "net.ipv6.conf.${ETH_INF}.disable_ipv6 = 1" >> /etc/sysctl.conf
+for ETH_INF in $(ls -1 /sys/class/net | grep -v lo); do
+  echo "net.ipv6.conf.${ETH_INF}.disable_ipv6 = 1" >> /etc/sysctl.d/20-ipv6.conf
 done
 
 <%# Activate kernel variables that were set above %>
-sysctl -p /etc/sysctl.conf >/dev/null
+sysctl -p /etc/sysctl.d/20-ipv6.conf >/dev/null
 
 <%# Clean up other things %>
 <%# 1. Comment IPv6 loopback address from /etc/hosts %>
@@ -493,14 +495,20 @@ done
 <% end -%>
 yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 
-<%# On physical servers only enable HW Random Number Generator %>
-## TODO:  Fix 7.6+ support of rngd
-if [ "$(virt-what)" == "" ]; then
-  echo ">>> Enabling Hardware RNG"
-  yum -q -y install rng-tools
-  systemctl enable rngd
-else
-  echo ">>> Enabling Virtual RNG"
+
+<%# ------------------------- RNG SECTION ----------------------------%>
+<%# On physical servers and RHEL7.5+ enable Random Number Generator %>
+<% if os_major == '7' && os_minor <= '5' %>
+if [ "$(virt-what)" != "" ]; then
   yum -q -y install haveged
   systemctl enable haveged
+else
+  yum -q -y install rng-tools
+  systemctl enable rngd
 fi
+<% else %>
+yum -q -y install rng-tools
+systemctl enable rngd
+<% end %>
+
+

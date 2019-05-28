@@ -77,3 +77,8 @@ fi
 
 <%# Apply initial static ISM hardening - can be overridden if needed %>
 <%= snippet "GatwardIT-Xsnippet_ISM" %>
+
+<%# If the 'sophos' host parameter is true, install Sophos AV agent %>
+<% if host_param_true?('sophos') %>
+  <%= snippet "GatwardIT-Xsnippet_sophos" %>
+<% end %>

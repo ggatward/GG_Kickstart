@@ -20,6 +20,7 @@ The following Foreman parameters are used in the snippet extension component of 
 - nessus_host = <fqdn>                          Nessus Scanner host to use. Nessus not installed if undef. [Default: ""]
 - splunk_host = <fqdn>                          Splunk Deployment server to register with. Splunkforwarder not installed if undef. [Default: ""]
 - localhomedirs = [true|false]
+- sophos = [true|false]                         Install sophos AV agent [Default: false]
 
 ##################################################################################
 #

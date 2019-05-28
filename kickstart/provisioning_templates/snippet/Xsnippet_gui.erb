@@ -16,10 +16,10 @@ echo ">>> Installing GUI packages..."
 <% else %>
   yum -q -y groupinstall "GNOME Desktop" "Graphical Administration Tools"
 <% end %>
-yum -q -y install glib2-devel
+yum -q -y install glib2-devel gnome-shell-extension-no-hot-corner
 
-if [ -d /etc/dconf/db/gdm.d ]; then
-  mkdir -p /etc/dconf/db/local.d
+if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
+  mkdir -p /etc/dconf/db/{local.d,gdm.d}
 
   # Configure GDM defaults
   echo "user-db:user" > /etc/dconf/profile/gdm
@@ -42,8 +42,8 @@ if [ -d /etc/dconf/db/gdm.d ]; then
   echo "[org/gnome/desktop/lockdown]" >> /etc/dconf/db/local.d/02-screensaver
   echo "disable-lock-screen=false" >> /etc/dconf/db/local.d/02-screensaver
   echo "/org/gnome/desktop/screensaver/idle-activation-enabled" > /etc/dconf/db/local.d/locks/screensaver
-  echo "/org/gnome/desktop/session" > /etc/dconf/db/local.d/locks/session
-  echo "/org/gnome/desktop/lockdown" > /etc/dconf/db/local.d/locks/lockdown
+  echo "/org/gnome/desktop/session/idle-delay" > /etc/dconf/db/local.d/locks/session
+  echo "/org/gnome/desktop/lockdown/disable-lock-screen" > /etc/dconf/db/local.d/locks/lockdown
 
   # Enable default background
   echo "[org/gnome/desktop/background]" > /etc/dconf/db/local.d/01-background
@@ -76,11 +76,11 @@ yum -q -y remove gnome-initial-setup
 <% if host_param_true?('nvidia') %>
   echo ">>> Install NVIDIA driver"
 
-  CARD=$(lspci | grep -i vga | grep -i NVIDIA | cut -d[ -f2 | cit -d] -f1)
+  CARD=$(lspci | grep -i vga | grep -i NVIDIA | cut -d[ -f2 | cut -d] -f1)
   echo "  >> Detected $CARD"
   if [ $(echo $CARD | egrep -c 'Quadro K|Quadro 2000') -eq 1 ]; then
     echo "  >> NVIDIA Driver series = 390.x"
-    ver="kmod-nvidia"
+    ver="kmod-nvidia-390xx"
   elif [ $(echo $CARD | grep -c 'Quadro FX') -eq 1 ]; then
     echo "  >> NVIDIA Driver series = 340.x"
     ver="kmod-nvidia-340xx"
@@ -152,9 +152,9 @@ polkit.addRule(function(action, subject) {
         action.id == "org.freedesktop.color-manager.delete-profile" ||
         action.id == "org.freedesktop.color-manager.modify-device" ||
         action.id == "org.freedesktop.color-manager.modify-profile") &&
-       subject.isInGroup("usergroup")) {
-      return polkit.Result.YES;
-   }
+        subject.isInGroup("usergroup")) {
+          return polkit.Result.YES;
+        }
 });
 EOF
   chmod 644 /etc/polkit-1/rules.d/99-xrdp-colord.rules
@@ -172,11 +172,6 @@ echo ">>> Fix libcolor"
 rm -f /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
 touch /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
 chattr +i /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
-
-<%# Install pepperflash for Firefox %>
-echo ">>> Install pepperflash plugin"
-wget -q -O /tmp/PepperFlash-firefox.zip http://repo.example.org/flash/PepperFlash-firefox.zip
-cd /usr/lib64/ && unzip /tmp/PepperFlash-firefox.zip
 
 <%# Configure Firefox %>
 echo ">>> Configure Firefox defaults"
