@@ -307,7 +307,7 @@ sed -e 's/DEFAULTKERNEL=kernel-uek/DEFAULTKERNEL=kernel/g' -i /etc/sysconfig/ker
     <% if rhel_compatible && os_major == 7 %>
       dracut -f --regenerate-all --kernel-cmdline "<%= "ip=#{@host.ip} netmask=#{subnet.mask} gateway=#{subnet.gateway} nameserver=#{subnet.dns_primary} nameserver=#{subnet.dns_secondary}" -%>"
     <% else %>
-      dracut -f --regenerate-all --kernel-cmdline "<%= "ip=#{@host.ip}::#{subnet.gateway}:#{subnet.mask}::eth0:none nameserver=#{subnet.dns_primary} nameserver=#{subnet.dns_secondary}" -%>"
+      dracut -f --regenerate-all --kernel-cmdline "<%= "ip=#{@host.ip}::#{subnet.gateway}:#{subnet.mask}::$real:none nameserver=#{subnet.dns_primary} nameserver=#{subnet.dns_secondary}" -%>"
     <% end %>
   <% end %>
 <% end %>
