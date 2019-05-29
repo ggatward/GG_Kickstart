@@ -345,7 +345,7 @@ for PAMFILE in /etc/pam.d/password-auth /etc/pam.d/system-auth; do
   <% if rhel_compatible && os_major >= 7 -%>
   sed -i 's/^password\s*requisite\s*pam_pwquality.so.*$/password    requisite     pam_pwquality.so try_first_pass local_users_only retry=5 difok=4 minlen=11 minclass=3 maxrepeat=3/' ${PAMFILE}
   <% else -%>
-  sed -i 's/^password\s*requisite\s*pam_cracklib.so.*$/password    requisite     pam_cracklib.so try_first_pass retry=5 difok=4 minlen=11 minclass=3 maxrepeat=3/' ${PAMFILE}'
+  sed -i 's/^password\s*requisite\s*pam_cracklib.so.*$/password    requisite     pam_cracklib.so try_first_pass retry=5 difok=4 minlen=11 minclass=3 maxrepeat=3/' ${PAMFILE}
   <% end -%>
 
   ## Prevent password reuse ########################################################################
@@ -483,7 +483,9 @@ if [ ! -z $NISDOMAIN ]; then
 fi
 
 <%# 7. Explicilty configure chronyd to use IPv4 only %>
+<% unless use_ntp %>
 sed -i 's/^OPTIONS=.*/OPTIONS="-4"/g' /etc/sysconfig/chronyd
+<% end %>
 
 <%# 8. Explicilty configure nscd to use IPv4 only %>
 if (! grep -q 'OPTIONS' /etc/sysconfig/nscd 2>/dev/null); then
@@ -496,7 +498,9 @@ EOL
 fi
 
 <%# Remove the DHCPv6 client listener firewall rule %>
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 firewall-offline-cmd --remove-service dhcpv6-client
+<% end -%>
 <% end %>
 
 <%# ------------------------- ISSUE BANNER SECTION ----------------------------%>
@@ -521,13 +525,15 @@ echo "** TODO: RHEL6 grub **************"
 <% end -%>
 
 <% unless host_param_true?('server_gui') -%>
-  /usr/sbin/setsebool -P deny_ptrace 1
-  /usr/sbin/setsebool -P guest_exec_content 0
-  /usr/sbin/setsebool -P xguest_exec_content 0
   /usr/sbin/setsebool -P xguest_mount_media 0
   /usr/sbin/setsebool -P xguest_use_bluetooth 0
   /usr/sbin/setsebool -P httpd_builtin_scripting 0
   /usr/sbin/setsebool -P httpd_enable_cgi 0
+  <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+  /usr/sbin/setsebool -P deny_ptrace 1
+  /usr/sbin/setsebool -P guest_exec_content 0
+  /usr/sbin/setsebool -P xguest_exec_content 0
+  <% end -%>
 <% end %>
 
 
