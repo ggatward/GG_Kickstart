@@ -33,8 +33,11 @@ sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.home.gatwards.org/' /
 
 
 echo ">>> Removing rhgb kernel option"
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub
-
+<% else -%>
+echo "** TODO: RHEL6 grub **************"
+<% end -%>
 
 
 echo ">>> Configuring root prompt"
@@ -45,20 +48,3 @@ elif [ $(hostname -f | grep -c '.lab.') -eq 1 ]; then
 else
   echo 'export PS1="\[\033[0;31m\]\u@\h\[\033[0;32m\][\w] #\[\033[0m\] "' >> /root/.bashrc
 fi
-
-
-
-<% if host_param_true?('add_ansible_user') %>
-  echo ">>> Adding service account for Ansible"
-  useradd svc-ansible -d /var/lib/svc-ansible
-  semanage fcontext -a -t user_home_dir_t "/var/lib/svc-ansible(/.*)?"
-  mkdir -p /var/lib/svc-ansible/.ssh
-  semanage fcontext -a -t ssh_home_t "/var/lib/svc-ansible/.ssh(/.*)?"
-  cat << EOF > /var/lib/svc-ansible/.ssh/id_rsa.pub
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCdOX2mHAYz0crAugVxsnY5uxN8L8CFFVjYVLKVY8bqxzvTgPgmA4oL7YstsLDu9ZPUoHF6ySHJ3mbm98o1VuDzCtBkHK7W+BiyhfFGOsGyJuSafbIGqt8g384ejoZ76wUWKTaBiJm/b6efYEK44EHnga4Dg9d1VeVd+b/VZBd8fCK9AyJin1fJ+apv1YdHP5G/pmPmmp/x8D/14aEQKuqseoZRuskihygt/gyigoKPcAxoYFx8Ylv4o2kgJY/cvjE0t14IHmO1t+kNisQkMnoqtBeJBL6JajHY7DAysNws9JlzyoqCqSqXY3/+Oztco4KA7UHRHPlj1pg7J1sxmViCGotwHGEyx876Tdl71eWzumiC9Mdp3dc3KQNP+AKJs3+4YduL47wOmZGxzvDwrlJgzpONXWO3QFh2eEV0qWJPA7UR1azfn/mRucI8r/d12x803pB6Tj3weDHOLgBpZphPhVXGxMZokTB09A70UHKZvWXyPhhGDgtjY9MGxIB0TZmJyD634OBDJh1j6ufsQ3+YLy6qRc4inLaV67YQtq72rODqNUHB+Ppg/DCnKMjbq6KLcUmktNqCFI0WxOvKAAKFKMkd74r9szUxytscjPMKaKtPJJ48skcVK6GSOTfmHlf/pXgI+xYo0qlffPEnpTauAouq/zc2zTDZPexzFgYQ0Q== svc-ansible@tower.lab.home.gatwards.org
-EOF
-  cp /var/lib/svc-ansible/.ssh/id_rsa.pub /var/lib/svc-ansible/.ssh/authorized_keys
-  chown -R svc-ansible: /var/lib/svc-ansible
-  restorecon -R /var/lib/svc-ansible
-  echo "svc-ansible  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/svc-ansible
-<% end %>
