@@ -244,7 +244,7 @@ fi
 <%= snippet 'GatwardIT-blacklist_kernel_modules' %>
 
 <%# Clevis & Tang exist only in Fedora 27+ and RHEL/CentOS 7.5+ %>
-<% if host_param_true?('luks') && ((@host.operatingsystem.name == 'Fedora' && os_major >= 27) || (rhel_compatible && ((os_major >= 7 && os_minor >= 5) || os_major >= 8))) %>
+<% if host_param_true?('luks') && ((@host.operatingsystem.name == 'Fedora' && os_major >= 27) || (rhel_compatible && ((os_major == 7 && os_minor >= 5) || os_major >= 8))) %>
   <% if host_param('luks-tang-server1') || host_param('luks-tang-server2') %>
     echo "++++++++++++++++++++++++++++ Configuring NBDE +++++++++++++++++++++++++++++++"
     # Determine the crypt block device

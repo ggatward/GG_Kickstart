@@ -13,6 +13,12 @@ The following Foreman parameters are used in the snippet extension component of 
 
 ##################################################################################
 #
+# POSIX LDAP parameters
+- ldap_server = <uri>                           LDAP server to use (prefix with ldaps://) [Default: ""]
+- ldap_basedn = <string>                        LDAP Base DN 
+
+##################################################################################
+#
 # Misc parameters
 - disable_thp = [true|false]                    Disable Transparent Huge Pages [Default: false]
 - add_ansible_user = [true|false]               Create pre-canned Ansible user (not standard Satellite one) [Default: false]
@@ -36,3 +42,4 @@ The following Foreman parameters are used in the snippet extension component of 
 # Hardening parameters
 - ignore_umask_hardening = [true|false]         Don't apply umask hardening parameters [Default: false]
 - syslog_server = <fqdn>                        Syslog server to send events to [Default: ""]
+- disable_ipv6 = [true|false]                   Disable IPv6 support [Default: true]
