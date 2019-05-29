@@ -21,20 +21,20 @@ os_minor = @host.operatingsystem.minor.to_i
 %>
 
 #Dynamic
-<% if @host.operatingsystem.major.to_i > 6 %>
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
   <% fstype = "xfs" %>
   <% bootsize = "1024" %>
-<% else %>
+<% else -%>
   <% fstype = "ext4" %>
   <% bootsize = "512" %>
-<% end %>
+<% end -%>
 
 <%# RHEL8 supports LUKS2 encryption %>
-<% if @host.operatingsystem.major.to_i >= 8 %>
+<% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major >= 8) -%>
   <% luksver = "--luks-version=luks2" %>
-<% else %>
+<% else -%>
   <% luksver = "" %>
-<% end %>
+<% end -%>
 
 <%#get the actual memory installed on the system and divide by 1024 to get it in MB %>
 act_mem=$((`grep MemTotal: /proc/meminfo | sed 's/^MemTotal: *//'|sed 's/ .*//'` / 1024))
