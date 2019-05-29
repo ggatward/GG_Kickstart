@@ -207,7 +207,7 @@ echo "++++++++++++++++++++++++++++ Setting System Time +++++++++++++++++++++++++
 /usr/sbin/ntpdate -sub <%= host_param('ntp-server') || '0.fedora.pool.ntp.org' %>
 /usr/bin/systemctl disable chronyd --now
 <% else -%>
-/usr/bin/systemctl disable ntpd --now
+/usr/bin/systemctl disable ntpd --now >/dev/null 2>&1
 /usr/bin/chronyc makestep
 <% end -%>
 /usr/sbin/hwclock --systohc
@@ -252,10 +252,12 @@ fi
     cryptdev=$(for i in $(lsblk -l --output NAME); do if [ $(cryptsetup isLuks /dev/$i 2>/dev/null; echo $?) -eq 0 ]; then echo /dev/$i; fi; done)
     echo "Crypt device = ${cryptdev}"
     yum -q -y install clevis clevis-dracut clevis-luks
-    # Wipe any existing luks metadata from slots 1-7 (passphrase is in slot 0)
-    for slot in 1 2 3 4 5 6 7; do
-      luksmeta wipe -d ${cryptdev} -s ${slot} -f
-    done
+    <% unless (is_fedora && os_major >= 28) || (rhel_compatible && os_major >= 8) -%>
+      # Wipe any existing luks1 metadata from slots 1-7 (passphrase is in slot 0)
+      for slot in 1 2 3 4 5 6 7; do
+        luksmeta wipe -d ${cryptdev} -s ${slot} -f
+      done
+    <% end -%>
     <% if host_param('luks-tang-server1') %>
       clevis luks bind -f -k- -d ${cryptdev} tang '{"url":"http://<%= host_param('luks-tang-server1') %>","thp":"<%= host_param('luks-tang-key1') %>"}' <<< <%= host_param('luks-passphrase') %>
     <% end %>

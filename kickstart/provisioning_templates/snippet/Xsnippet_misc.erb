@@ -20,7 +20,7 @@ EOF
 
 
 echo ">>> Installing other common tools"
-yum -q -y install git tree iotop vim iptraf htop dstat dropwatch bash-completion
+yum -q -y install git tree iotop vim iptraf dstat dropwatch bash-completion
 if [ $(yum repolist | grep -ic epel) -ne 0 ]; then
   yum -q -y install bash-completion-extras htop iptstate
 fi

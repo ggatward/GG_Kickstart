@@ -35,7 +35,7 @@ snippet: true
   <% else -%>
     freeipa_client=ipa-client
   <% end -%>
-  <% if @host.operatingsystem.major.to_i > 6 -%>
+  <% if @host.operatingsystem.major.to_i == 7 -%>
     /usr/sbin/sshd-keygen
   <% end -%>
 <% else -%>
