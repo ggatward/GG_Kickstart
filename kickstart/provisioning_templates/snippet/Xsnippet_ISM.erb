@@ -20,13 +20,14 @@ echo ">>> Disable wheel group sudo"
 sed -i 's/^%wheel\s.*ALL=(ALL).*/# %wheel\tALL=(ALL)\t\tALL/g' /etc/sudoers
 
 <%# -------------------- DISABLE SERVICES SECTION -----------------------------%>
+if rpm -q postfix >/dev/null; then
 echo ">>> Disable postfix"
 <% if use_systemd %>
 systemctl disable postfix.service
 <% else %>
 chkconfig postfix off
 <% end %>
-
+fi
 
 <%# ----------------------- KERNEL TUNING SECTION -----------------------------%>
 echo ">>> Kernel tuning parameters"
@@ -101,11 +102,13 @@ EOL
   echo ">>> Setting default umasks"
   # Some of this hardening may not make sense and has simply been done to meet STIG SCAP tests.
   for PFILE in /etc/bashrc /etc/csh.cshrc /etc/profile; do
-    sed -i 's/umask [0-9]\{3\}/umask 077/g' ${PFILE} || echo "Error: Failed setting umask in ${PFILE}."
+    sed -i 's/umask [0-9]\{3\}/umask 077/g' ${PFILE}
   done
 
   # Ensure daemon umask is 027 by default to pass SCAP tests.
-  sed -i "s/umask [0-9]\{3\}/umask 027/g" /etc/init.d/functions
+  if [ -f /etc/init.d/functions ]; then
+    sed -i "s/umask [0-9]\{3\}/umask 027/g" /etc/init.d/functions
+  fi
 <% end %>
 
 <%# --------------------------- AIDE/PRELINK SECTION --------------------------%>
@@ -263,6 +266,7 @@ sed -i 's/nofb/nofb audit=1/' /etc/grub.conf
 
 <%# ---------------------------- SYSLOG SECTION -------------------------------%>
 echo ">>> Configure syslog"
+yum -q -y install rsyslog
 <% if use_systemd -%>
 # Configure journalctl to save logs locally, and forward via rsyslog to remote host
 sed -i 's/#Storage=auto/Storage=persistent/g' /etc/systemd/journald.conf
@@ -461,7 +465,9 @@ cat /tmp/sshd_content >> /etc/ssh/sshd_config
 rm /tmp/sshd_content
 
 <%# 5. Explicitly configure postfix to use enable IPv4 only (in case it's used) %>
-sed -i 's/inet_protocols = all/inet_protocols = ipv4/g' /etc/postfix/main.cf
+if rpm -q postfix >/dev/null; then
+  sed -i 's/inet_protocols = all/inet_protocols = ipv4/g' /etc/postfix/main.cf
+fi
 
 <%# 6. Clean up /etc/sysconfig/network even though it doesn't prevent IPv6 being disabled %>
 <%# A system enrolled with IPA earlier in the ks will have a NISDOMAIN parameter in here. %>

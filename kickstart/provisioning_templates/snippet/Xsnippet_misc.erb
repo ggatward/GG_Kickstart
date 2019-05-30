@@ -34,10 +34,10 @@ if [ $(yum repolist | grep -ic epel) -ne 0 ]; then
 fi
 
 
-
-echo ">>> Configure mail relay"
-sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.home.gatwards.org/' /etc/postfix/main.cf
-
+if rpm -q postfix >/dev/null; then
+  echo ">>> Configure mail relay"
+  sed -i 's/#relayhost = $mydomain/relayhost = mailhost.core.home.gatwards.org/' /etc/postfix/main.cf
+fi
 
 
 echo ">>> Removing rhgb kernel option"

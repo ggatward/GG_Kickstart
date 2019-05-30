@@ -142,8 +142,10 @@ reboot
 <% end -%>
 
 %packages
+<% if (is_fedora && os_major < 29) || rhel_compatible -%>
 yum
 yum-utils
+<% end -%>
 dhclient
 <% if use_ntp -%>
 ntp
@@ -153,9 +155,10 @@ ntpdate
 -ntpdate
 chrony
 <% end -%>
+virt-what
 wget
 @Core
-<% if os_major >= 6 -%>
+<% if (rhel_compatible && os_major >= 6) -%>
 redhat-lsb-core
 <% end -%>
 

@@ -40,7 +40,7 @@ sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' $ntp_config
 sed -i '/^server 3.*/d' $ntp_config
 
 
-<%# Check if we are a virtual guest - if so then install the tools %>
+<%# Check if we are a virtual guest - if so then install the tools. CentOS requires EPEL repo %>
 if [ "$(virt-what)" == "vmware" ]; then
   echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
   echo ">>> Installing VMware tools..."
