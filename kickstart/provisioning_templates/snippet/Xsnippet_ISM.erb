@@ -21,7 +21,12 @@ sed -i 's/^%wheel\s.*ALL=(ALL).*/# %wheel\tALL=(ALL)\t\tALL/g' /etc/sudoers
 
 <%# -------------------- DISABLE SERVICES SECTION -----------------------------%>
 echo ">>> Disable postfix"
+<% if use_systemd %>
 systemctl disable postfix.service
+<% else %>
+chkconfig postfix off
+<% end %>
+
 
 <%# ----------------------- KERNEL TUNING SECTION -----------------------------%>
 echo ">>> Kernel tuning parameters"
@@ -116,9 +121,8 @@ else
 fi
 
 # Disable any previous pre-linking
-if test -x /usr/sbin/prelink
-then
-    /usr/sbin/prelink -ua
+if test -x /usr/sbin/prelink; then
+  /usr/sbin/prelink -ua
 fi
 
 yum -q -y install aide
@@ -549,7 +553,7 @@ echo "** TODO: RHEL6 ctrl-alt-del **************"
 <% if os_major == 6 -%>
 echo ">>> Disabling services"
 for service in abrtd abrt-oops; do
-  systemctl disable ${service}
+  chkconfig ${service} off
 done
 <% end -%>
 yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
@@ -558,14 +562,18 @@ yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 <%# ------------------------- RNG SECTION ----------------------------%>
 <%# On physical servers and RHEL7.5+ enable Random Number Generator %>
 <% if os_major == '7' && os_minor <= '5' %>
-if [ "$(virt-what)" != "" ]; then
-  yum -q -y install haveged
-  systemctl enable haveged
-else
-  yum -q -y install rng-tools
-  systemctl enable rngd
-fi
+  if [ "$(virt-what)" != "" ]; then
+    yum -q -y install haveged
+    systemctl enable haveged
+  else
+    yum -q -y install rng-tools
+    systemctl enable rngd
+  fi
 <% else %>
-yum -q -y install rng-tools
-systemctl enable rngd
+  yum -q -y install rng-tools
+  <% if os_major == '6' %>
+    chkconfig rngd on
+  <% else %>
+    systemctl enable rngd
+  <% end %>
 <% end %>

@@ -53,18 +53,27 @@ elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
     <% if os_major == 7 -%>
       subscription-manager repos --enable rhel-7-server-rh-common-rpms
     <% elsif os_major == 6 -%>
-      subscription-manager repos --enable rhel-6-server-rhv-agent-rpms
+      subscription-manager repos --enable rhel-6-server-rhv-4-agent-rpms
     <% end -%>
   <% end -%>
   yum -q -y install ovirt-guest-agent
-  systemctl enable ovirt-guest-agent
-fi
+
+  <% if use_systemd %>
+    systemctl enable ovirt-guest-agent
+  <% else %>
+    chkconfig ovirt-guest-agent on
+  <% end %>
+  fi
 
 <%# Disable Transparent Huge Pages %>
 <% if host_param_true?('disable_thp') -%>
   echo ">>> Disabling Transparent Huge Pages kernel option"
-  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb transparent_hugepage=never/}' /etc/default/grub
-<% end %>
+  <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+    sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb transparent_hugepage=never/}' /etc/default/grub
+  <% else -%>
+    echo "** TODO: RHEL6 grub **************"
+  <% end -%>
+<% end -%>
 
 <%# Configure misc tooling %>
 <%= snippet "GatwardIT-Xsnippet_misc" %>
