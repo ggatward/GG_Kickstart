@@ -546,7 +546,7 @@ echo ">>> Disable Ctrl-Alt-Del"
 <% if use_systemd %>
 systemctl mask ctrl-alt-del.target && systemctl daemon-reload
 <% else %>
-exec /usr/bin/logger -p authpriv.notice -t init "Ctrl-Alt-Del was pressed and ignored"
+echo 'exec /usr/bin/logger -p authpriv.notice -t init "Ctrl-Alt-Del was pressed and ignored"' > /etc/init/control-alt-delete.override
 <% end %>
 
 <%# Disable and/or remove not-required services %>
