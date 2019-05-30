@@ -20,12 +20,15 @@ if [ -f /usr/bin/dnf ]; then
 else
   yum -t -y install sssd sssd-ad adcli realmd samba-common samba-common-tools krb5-workstation
 fi
+
+# Ensure hostname is set
+hostnamectl set-hostname <%= @host %>
+
 <% else -%>
   yum -t -y install adcli sssd krb5-workstation
 <% end -%>
 
-# Ensure hostname is set
-hostnamectl set-hostname <%= @host %>
+
 
 # To avoid computer object conflicts in AD we need to add a prefix to differentiate same hostnames in AD.
 # NOTE - this limits the usable hostname to 13 characters, as AD truncates at 15 and we are prefixing 2.
@@ -63,6 +66,11 @@ EOF
 
   # Allow any AD user to login - we can control access through access.conf if we need to
   echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
+
+  if [ $(cat /etc/krb5.conf | grep -v '#' | grep -c default_realm) -eq 0 ]; then
+    sed -i '/default_realm/s/^#//' /etc/krb5.conf
+    sed -i 's/default_realm.*/default_realm = <%= host_param('ad_realm') %>/' /etc/krb5.conf
+  fi
 <% else -%>
   echo -n '<%= host_param('ad_join_passwd')%>' | adcli join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> $ad_hostname $ad_ou --stdin-password
 
@@ -74,16 +82,14 @@ admin_server = FILE:/var/log/kadmind.log
 
 [libdefaults]
 default_realm = <%= host_param('ad_realm') %>
-dns_lookup_realm = false
-dns_lookup_kdc = false
+dns_lookup_realm = true
+dns_lookup_kdc = true
 ticket_lifetime = 24h
 renew_lifetime = 7d
 forwardable = true
 
 [realms]
 <%= host_param('ad_realm') %> = {
-#kdc = kerberos.example.com
-#admin_server = kerberos.example.com
 }
 
 [domain_realm]
