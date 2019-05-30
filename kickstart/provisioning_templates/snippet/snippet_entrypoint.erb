@@ -41,6 +41,7 @@ sed -i '/^server 3.*/d' $ntp_config
 
 
 <%# Check if we are a virtual guest - if so then install the tools. CentOS requires EPEL repo %>
+yum -q -y install virt-what
 if [ "$(virt-what)" == "vmware" ]; then
   echo "+++++++++++++++++++++++ VM Guest Agent Configuration ++++++++++++++++++++++++++"
   echo ">>> Installing VMware tools..."
