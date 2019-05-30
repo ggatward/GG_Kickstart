@@ -6,27 +6,18 @@ snippet: true
 %>
 echo "++++++++++++++++++++++++++ AD Join Snippet +++++++++++++++++++++++++++++"
 
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 if [ -f /usr/bin/dnf ]; then
   dnf -y install sssd sssd-ad adcli realmd samba-common samba-common-tools krb5-workstation
 else
   yum -t -y install sssd sssd-ad adcli realmd samba-common samba-common-tools krb5-workstation
 fi
+<% else -%>
+  yum -t -y install adcli
+<% end -%>
 
 # Ensure hostname is set
 hostnamectl set-hostname <%= @host %>
-
-# This MUST come before the realm command to be effective
-cat > /etc/realmd.conf << EOF
-[users]
-  default-home = /home/%U
-  default-shell = /bin/bash
-
-# Don't allow AD to control access
-[<%= host_param('ad_realm').downcase %>]
-  manage-system = no
-  # We must disable auto-mapping so that AD defined UID/GID are set
-  automatic-id-mapping = no
-EOF
 
 # To avoid computer object conflicts in AD we need to add a prefix to differentiate same hostnames in AD.
 # NOTE - this limits the usable hostname to 13 characters, as AD truncates at 15 and we are prefixing 2.
@@ -39,15 +30,38 @@ else
 fi
 
 <% if host_param('ad_join_ou') -%>
-ad_ou="--computer-ou=\"<%= host_param('ad_join_ou') %>\""
+  <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+    ad_ou="--computer-ou=\"<%= host_param('ad_join_ou') %>\""
+  <% else -%>
+    ad_ou="--domain-ou=\"<%= host_param('ad_join_ou') %>\""
+  <% end -%>
 <% end -%>
 
-realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> --unattended --install=/ $ad_hostname $ad_ou <<< '<%= host_param('ad_join_passwd')%>'
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+  # This MUST come before the realm command to be effective
+  cat > /etc/realmd.conf << EOF
+[users]
+  default-home = /home/%U
+  default-shell = /bin/bash
 
-# Allow any AD user to login - we can control access through access.conf if we need to
-echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
+# Don't allow AD to control access
+[<%= host_param('ad_realm').downcase %>]
+  manage-system = no
+  # We must disable auto-mapping so that AD defined UID/GID are set
+  automatic-id-mapping = no
+EOF
 
+  realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> --unattended --install=/ $ad_hostname $ad_ou <<< '<%= host_param('ad_join_passwd')%>'
+
+  # Allow any AD user to login - we can control access through access.conf if we need to
+  echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
+<% else -%>
+  adcli join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> $ad_hostname $ad_ou --stdin-password <<< '<%= host_param('ad_join_passwd')%>'
+<% end -%>
+
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 # Update sssd config for AD
 sed -i '/services = nss, pam/a default_domain_suffix = <%= host_param('ad_realm').downcase %>' /etc/sssd/sssd.conf
 sed -i 's/fallback_homedir.*/fallback_homedir = \/home\/%u/' /etc/sssd/sssd.conf
 sed -i '/default_domain_suffix = <%= host_param('ad_realm').downcase %>/a full_name_format = %1$s' /etc/sssd/sssd.conf
+<% end -%>
