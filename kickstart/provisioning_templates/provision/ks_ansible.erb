@@ -108,10 +108,6 @@ timezone --utc <%= host_param('time-zone') || 'UTC' %> <%= host_param('ntp-serve
 services --disabled gpm,sendmail,cups,pcmcia,isdn,rawdevices,hpoj,bluetooth,openibd,avahi-daemon,avahi-dnsconfd,hidd,hplip,pcscd
 <% end -%>
 
-<% if @host.operatingsystem.name == 'Fedora' -%>
-repo --name=fedora-everything --mirrorlist=https://mirrors.fedoraproject.org/metalink?repo=fedora-<%= @host.operatingsystem.major %>&arch=<%= @host.architecture %><%= proxy_string %>
-<% end -%>
-
 <% if @host.operatingsystem.name == 'OracleLinux' && os_major == 7 && os_minor < 5 -%>
 repo --name="Server-Mysql"
 <% end -%>
