@@ -71,7 +71,7 @@ elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
   <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
     sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb transparent_hugepage=never/}' /etc/default/grub
   <% else -%>
-    echo "** TODO: RHEL6 grub **************"
+    sed -i 's/nofb/nofb transparent_hugepage=never/' /etc/grub.conf
   <% end -%>
 <% end -%>
 

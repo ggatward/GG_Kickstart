@@ -257,7 +257,7 @@ chkconfig auditd on
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb audit=1/}' /etc/default/grub
 <% else -%>
-echo "** TODO: RHEL6 grub **************"
+sed -i 's/nofb/nofb audit=1/' /etc/grub.conf
 <% end -%>
 
 
@@ -525,7 +525,7 @@ echo ">>> Setup SELinux"
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb selinux=1 enforcing=1/}' /etc/default/grub
 <% else -%>
-echo "** TODO: RHEL6 grub **************"
+sed -i 's/nofb/nofb selinux=1 enforcing=1/' /etc/grub.conf
 <% end -%>
 
 <% unless host_param_true?('server_gui') -%>
@@ -546,7 +546,7 @@ echo ">>> Disable Ctrl-Alt-Del"
 <% if use_systemd %>
 systemctl mask ctrl-alt-del.target && systemctl daemon-reload
 <% else %>
-echo "** TODO: RHEL6 ctrl-alt-del **************"
+exec /usr/bin/logger -p authpriv.notice -t init "Ctrl-Alt-Del was pressed and ignored"
 <% end %>
 
 <%# Disable and/or remove not-required services %>

@@ -44,7 +44,7 @@ echo ">>> Removing rhgb kernel option"
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
 sed -i '/GRUB_CMDLINE_LINUX.*$/{s/ rhgb//}' /etc/default/grub
 <% else -%>
-echo "** TODO: RHEL6 grub **************"
+sed -i 's/ rhgb//' /etc/grub.conf
 <% end -%>
 
 
