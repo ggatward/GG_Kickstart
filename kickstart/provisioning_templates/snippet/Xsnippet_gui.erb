@@ -15,17 +15,25 @@ use_systemd = (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7
 
 echo "++++++++++++++++++++++ GUI Installation/Configure Snippet +++++++++++++++++++++"
 
-# Install desktop backgrounds
-wget -q -O /usr/share/backgrounds/gg-default.jpg http://repo.example.org/desktop/backgrounds/internet-of-things.jpg
-
-<%# Install and configure the GUI packages %>
 echo ">>> Installing GUI packages..."
-<% if @host.operatingsystem.name == "RedHat" %>
-  yum -q -y groupinstall "Server with GUI"
+<% if rhel_compatible && os_major >= 7 %>
+  if [ -f /usr/bin/dnf ]; then
+    dnf -y groupinstall "Server with GUI"
+  else
+    yum -t -y groupinstall "Server with GUI"
+  fi
+<% elsif is_fedora && os_major >=29 %>
+  dnf -y groupinstall GNOME
 <% else %>
-  yum -q -y groupinstall "GNOME Desktop" "Graphical Administration Tools"
+  echo "**** NO GUI GROUP KNOWN ****"
+#  yum -y groupinstall "GNOME Desktop" "Graphical Administration Tools"
 <% end %>
-yum -q -y install glib2-devel gnome-shell-extension-no-hot-corner
+
+if [ -f /usr/bin/dnf ]; then
+  dnf -y install glib2-devel
+else
+  yum -t -y install glib2-devel
+fi
 
 if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
   mkdir -p /etc/dconf/db/{local.d,gdm.d}
@@ -54,15 +62,20 @@ if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
   echo "/org/gnome/desktop/session/idle-delay" > /etc/dconf/db/local.d/locks/session
   echo "/org/gnome/desktop/lockdown/disable-lock-screen" > /etc/dconf/db/local.d/locks/lockdown
 
-  # Enable default background
-  echo "[org/gnome/desktop/background]" > /etc/dconf/db/local.d/01-background
-  echo "picture-uri=file:///usr/share/backgrounds/gg-default.jpg" >> /etc/dconf/db/local.d/01-background
-  # echo "/org/gnome/desktop/background/picture-uri" > /etc/dconf/db/local.d/locks/background
+  <% if host_param('gui_desktop_background') %>
+    # Enable default background
+    wget -q -O /usr/share/backgrounds/desktop_bground.jpg <%= host_param('gui_desktop_background') %>
+    echo "[org/gnome/desktop/background]" > /etc/dconf/db/local.d/01-background
+    echo "picture-uri=file:///usr/share/backgrounds/desktop_bground.jpg" >> /etc/dconf/db/local.d/01-background
+    # echo "/org/gnome/desktop/background/picture-uri" > /etc/dconf/db/local.d/locks/background
+  <% end %>
 
-  # Add logo to the login screen
-  mkdir -p /usr/share/pixmaps/logo/
-  wget -q -O /usr/share/pixmaps/logo/gg-logo.png http://repo.example.org/desktop/backgrounds/gg-logo.png
-  echo "logo='/usr/share/pixmaps/logo/gg-logo.png'" >> /etc/dconf/db/gdm.d/00-login-screen
+  <% if host_param('gui_desktop_logo') %>
+    # Add logo to the login screen
+    mkdir -p /usr/share/pixmaps/logo/
+    wget -q -O /usr/share/pixmaps/logo/desktop-logo.png <%= host_param('gui_desktop_logo') %>
+    echo "logo='/usr/share/pixmaps/logo/desktop-logo.png'" >> /etc/dconf/db/gdm.d/00-login-screen
+  <% end %>
 
   #####
   # Fix default icon view level
@@ -124,11 +137,11 @@ EOF
 ######################
 
 <%# Setup last login banner %>
-mkdir -p /etc/X11/xinit/scripts
-wget -q -O /etc/X11/xinit/scripts/lastuserlogin.pl http://repo.example.org/desktop/scripts/lastuserlogin.pl
-wget -q -O /etc/X11/xinit/scripts/xwarn.sh http://repo.example.org/desktop/scripts/xwarn.sh
-chmod +x /etc/X11/xinit/scripts/*
-ln -s /etc/X11/xinit/scripts/xwarn.sh /etc/X11/xinit/xinitrc.d/xwarn.sh
+#mkdir -p /etc/X11/xinit/scripts
+#wget -q -O /etc/X11/xinit/scripts/lastuserlogin.pl http://repo.example.org/desktop/scripts/lastuserlogin.pl
+#wget -q -O /etc/X11/xinit/scripts/xwarn.sh http://repo.example.org/desktop/scripts/xwarn.sh
+#chmod +x /etc/X11/xinit/scripts/*
+#ln -s /etc/X11/xinit/scripts/xwarn.sh /etc/X11/xinit/xinitrc.d/xwarn.sh
 
 <%# Configure XRDP %>
 <% if host_param_true?('xrdp') -%>
@@ -169,76 +182,78 @@ EOF
   chmod 644 /etc/polkit-1/rules.d/99-xrdp-colord.rules
 <% end %>
 
-<%# Configure krb5 accesses %>
-echo ">>> Applying krb5child SELinux policy"
-wget -q -O /tmp/my-krb5child.te http://repo.example.org/desktop/selinux/my-krb5child.te
-checkmodule -< -m -o /tmp/my-krb5child.mod /tmp/my-krb5child.te
-semodule_package -m /tmp/my-krb5child.mod -o /tmp/my-krb5child.pp
-semodule -i /tmp/my-krb5child.pp
 
-<%# Fix libcolor %>
-echo ">>> Fix libcolor"
-rm -f /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
-touch /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
-chattr +i /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+<% if rhel_compatible && os_major == 7 %>
+#  echo ">>> Applying krb5child SELinux policy"
+#  wget -q -O /tmp/my-krb5child.te http://repo.example.org/desktop/selinux/my-krb5child.te
+#  checkmodule -< -m -o /tmp/my-krb5child.mod /tmp/my-krb5child.te
+#  semodule_package -m /tmp/my-krb5child.mod -o /tmp/my-krb5child.pp
+#  semodule -i /tmp/my-krb5child.pp
+
+  <%# Fix libcolor %>
+#  echo ">>> Fix libcolor"
+#  rm -f /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+#  touch /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+#  chattr +i /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+<% end %>
 
 <%# Configure Firefox %>
-echo ">>> Configure Firefox defaults"
-chmod 755 /usr/lib64/firefox/defaults
+#echo ">>> Configure Firefox defaults"
+#chmod 755 /usr/lib64/firefox/defaults
 
 # Configure Firefox to read in our custom config
-cat >> /usr/lib64/firefox/defaults/preferences/all-redhat.js << EOF
-pref("general.config.obscure_value",    0);
-pref("general.config.filename",         "mozilla-myorg.cfg");
-EOF
+#cat >> /usr/lib64/firefox/defaults/preferences/all-redhat.js << EOF
+#pref("general.config.obscure_value",    0);
+#pref("general.config.filename",         "mozilla-myorg.cfg");
+#EOF
 
 # Install our custom config
-wget -q -O /usr/lib64/firefox/defaults/preferences/mozilla-myorg.cfg http://repo.example.org/desktop/configs/mozilla-myorg.cfg
-chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-myorg.cfg
+#wget -q -O /usr/lib64/firefox/defaults/preferences/mozilla-myorg.cfg http://repo.example.org/desktop/configs/mozilla-myorg.cfg
+#chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-myorg.cfg
 
 # Install autostart scripts
-echo ">>> Install Login Scripts"
-wget -q -O /usr/local/bin/myorg_gui.sh http://repo.example.org/desktop/scripts/myorg_gui.sh
-chmod 755 /usr/local/bin/myorg_gui.sh
+#echo ">>> Install Login Scripts"
+#wget -q -O /usr/local/bin/myorg_gui.sh http://repo.example.org/desktop/scripts/myorg_gui.sh
+#chmod 755 /usr/local/bin/myorg_gui.sh
 
-wget -q -O /etc/xdg/autostart/myorg_gui.desktop http://repo.example.org/desktop/scripts/myorg_gui.desktop
-chmod 644 /etc/xdg/autostart/myorg_gui.desktop
+#wget -q -O /etc/xdg/autostart/myorg_gui.desktop http://repo.example.org/desktop/scripts/myorg_gui.desktop
+#chmod 644 /etc/xdg/autostart/myorg_gui.desktop
 
 # Install and configure Citrix
-echo ">>> Install Citrix Receiver"
-mkdir -p /tmp/rtmeok  # Needed for hdx-realtime install
-yum -q -y install ICAClient citrix-hdx-realtime-media-engine
+#echo ">>> Install Citrix Receiver"
+#mkdir -p /tmp/rtmeok  # Needed for hdx-realtime install
+#yum -q -y install ICAClient citrix-hdx-realtime-media-engine
 
-cp /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
-chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
-/opt/Citrix/ICAClient/util/ctx_rehash
+#cp /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
+#chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
+#/opt/Citrix/ICAClient/util/ctx_rehash
 
 # Copy global default configuration
-mkdir -p /etc/skel/.ICAClient/cache/Stores
-cat << EOF > /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
-<StoreCache>
-  <DefaultStore>https://citrix.example.com/config.xml</DefaultStore>
-  <ReconnectOnLogon>False</ReconnectOnLogon>
-  <ReconnectOnLaunchOrRefresh>False</ReconnectOnLaunchOrRefresh>
-  <SharedUserMode>False</SharedUserMode>
-  <FullscreenMode>0</FullscreenMode>
-  <SelfSelection>True</SelfSelection>
-  <SessionWindowedMode>False</SessionWindowedMode>
-  <VisibleStores>
-    <Store name="https://citrix.example.com/config.xml" type="PNA">
-      https://citrix.exmaple.com/config.xml
-    </Store>
-  </VisibleStores>
-</StoreCache>
-EOF
-chmod 644 /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
+#mkdir -p /etc/skel/.ICAClient/cache/Stores
+#cat << EOF > /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
+#<StoreCache>
+#  <DefaultStore>https://citrix.example.com/config.xml</DefaultStore>
+#  <ReconnectOnLogon>False</ReconnectOnLogon>
+#  <ReconnectOnLaunchOrRefresh>False</ReconnectOnLaunchOrRefresh>
+#  <SharedUserMode>False</SharedUserMode>
+#  <FullscreenMode>0</FullscreenMode>
+#  <SelfSelection>True</SelfSelection>
+#  <SessionWindowedMode>False</SessionWindowedMode>
+#  <VisibleStores>
+#    <Store name="https://citrix.example.com/config.xml" type="PNA">
+#      https://citrix.exmaple.com/config.xml
+#    </Store>
+#  </VisibleStores>
+#</StoreCache>
+#EOF
+#chmod 644 /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
 
 # Configure Printer
-echo ">>> Configure Printing"
-yum -q -y install cups foomatic-db-ppds foomatic-filters
-firewall-offline-cmd --add-service ipp-client --add-service mdns
+#echo ">>> Configure Printing"
+#yum -q -y install cups foomatic-db-ppds foomatic-filters
+#firewall-offline-cmd --add-service ipp-client --add-service mdns
 
-wget -q -O /etc/cups/ppd/RICOH-MP-C4503.ppd http://repo.example.org/desktop/configs/RICOH-MP-C4503.ppd
-chmod 644 /etc/cups/ppd/RICOH-MP-C4503.ppd
-wget -q -O /etc/cups/printers.conf http://repo.example.org/desktop/configs/printers.conf
-chmod 600 /etc/cups/printers.conf
+#wget -q -O /etc/cups/ppd/RICOH-MP-C4503.ppd http://repo.example.org/desktop/configs/RICOH-MP-C4503.ppd
+#chmod 644 /etc/cups/ppd/RICOH-MP-C4503.ppd
+#wget -q -O /etc/cups/printers.conf http://repo.example.org/desktop/configs/printers.conf
+#chmod 600 /etc/cups/printers.conf

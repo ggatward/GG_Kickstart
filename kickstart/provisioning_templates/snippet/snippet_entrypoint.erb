@@ -84,8 +84,8 @@ elif [ $(virt-what | grep -c rhev) -eq 1 ]; then
   <%= snippet "GatwardIT-Xsnippet_autoupdate" %>
 <% end -%>
 
-<%# If the 'server_gui' host parameter is defined, install the GUI components %>
-<% if host_param_true?('server_gui') -%>
+<%# If the 'server_gui' host parameter is defined, install the GUI components (EL7+ only) %>
+<% if host_param_true?('server_gui') && os_major >= 7 -%>
   <%= snippet "GatwardIT-Xsnippet_gui" %>
 <% end -%>
 

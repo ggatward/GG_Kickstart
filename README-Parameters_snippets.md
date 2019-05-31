@@ -33,6 +33,8 @@ The following Foreman parameters are used in the snippet extension component of 
 #
 # Graphical Desktop parameters
 - server_gui = [true|false]                     Install the GUI packages and configure as a workstation [Default: false]
+- gui_desktop_background = <url>                URL of background wallpaper to use [Default: ""]
+- gui_desktop_logo = <url>                      URL of logo to use [Default: ""]
 - headless = [true|false]                       Boot in text mode even though GUI is installed [Default: false]
 - nvidia = [true|false]                         Install NVIDIA graphics driver [Default: false]
 - xrdp = [true|false]                           Install and configure XRDP [Default: false]
