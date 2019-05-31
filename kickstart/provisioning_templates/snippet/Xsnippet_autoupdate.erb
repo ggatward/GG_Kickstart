@@ -34,7 +34,7 @@ echo "++++++++++++++++++++++++++ Autoupdate Snippet ++++++++++++++++++++++++++++
   sed -i 's/download_updates = no/download_updates = yes/g' /etc/yum/yum-cron.conf
   sed -i 's/apply_updates = no/apply_updates = yes/g' /etc/yum/yum-cron.conf
   sed -i 's/random_sleep = 360/random_sleep = 60/g' /etc/yum/yum-cron.conf
-  <% if @host_param_true?('auto_update_security') %>
+  <% if host_param_true?('auto_update_security') %>
   sed -i 's/update_cmd = default/update_cmd = security/g' /etc/yum/yum-cron.conf
   <% end %>
 
@@ -57,7 +57,7 @@ echo "++++++++++++++++++++++++++ Autoupdate Snippet ++++++++++++++++++++++++++++
   # Configure update policy
   sed -i 's/random_sleep = 0/random_sleep = 60/g' /etc/dnf/automatic.conf
   sed -i 's/apply_updates = no/apply_updates = yes/g' /etc/dnf/automatic.conf
-  <% if @host_param_true?('auto_update_security') %>
+  <% if host_param_true?('auto_update_security') %>
   sed -i 's/upgrade_type = default/update_cmd = security/g' /etc/dnf/automatic.conf
   <% end %>
 
