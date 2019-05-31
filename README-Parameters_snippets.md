@@ -15,14 +15,15 @@ The following Foreman parameters are used in the snippet extension component of 
 #
 # POSIX LDAP parameters
 - ldap_server = <uri>                           LDAP server to use (prefix with ldaps://) [Default: ""]
-- ldap_basedn = <string>                        LDAP Base DN 
+- ldap_basedn = <string>                        LDAP Base DN
 
 ##################################################################################
 #
 # Misc parameters
 - disable_thp = [true|false]                    Disable Transparent Huge Pages [Default: false]
 - add_ansible_user = [true|false]               Create pre-canned Ansible user (not standard Satellite one) [Default: false]
-- auto_update = [true|false]                    Enable automated patching using yum-cron [Default: false]
+- auto_update = [true|false]                    Enable automated patching [Default: false]
+- auto_update_security = [true|false]           Only apply security updates [Default: false]
 - nessus_host = <fqdn>                          Nessus Scanner host to use. Nessus not installed if undef. [Default: ""]
 - splunk_host = <fqdn>                          Splunk Deployment server to register with. Splunkforwarder not installed if undef. [Default: ""]
 - localhomedirs = [true|false]
