@@ -1,14 +1,22 @@
+<%#
+kind: snippet
+name: GatwardIT-Xconfig_xrdp.ini
+model: ProvisioningTemplate
+snippet: true
+%>
+
 [globals]
 ini_version=1
-
 bitmap_cache=yes
 bitmap_compression=yes
 port=3389
 allow_channels=true
 max_bpp=24
 fork=yes
+
 crypt_level=high
-security_layer=rdp
+security_layer=negotiate
+ssl_protocols=TLSv1, TLSv1.1, TLSv1.2
 
 # X.509 certificate and private key
 certificate=
