@@ -16,4 +16,6 @@ curl -H "Accept:application/json,version=2" -H "Content-Type:application/json" -
 
 PARAMETERS
 
-See README-Parameters for a description of all parameters that can be defined in Foreman/Satellite for this kickstart.
+See README-Parameters for a description of all parameters that can be defined in Foreman/Satellite for this base 'bootstrap' kickstart.
+
+See README-Parameters_snippets for a description of all additional parameters that are used throughout the snippet-based SOE installation

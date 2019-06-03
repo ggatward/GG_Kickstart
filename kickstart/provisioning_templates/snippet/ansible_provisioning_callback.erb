@@ -3,6 +3,9 @@ kind: snippet
 name: GatwardIT-ansible_provisioning_callback
 model: ProvisioningTemplate
 snippet: true
+organizations:
+- GatwardIT
+- MyOrg
 -%>
 <% if host_param_true?('ansible_tower_provisioning') -%>
 <%

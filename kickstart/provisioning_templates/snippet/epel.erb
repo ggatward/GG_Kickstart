@@ -3,6 +3,9 @@ kind: snippet
 name: GatwardIT-epel
 model: ProvisioningTemplate
 snippet: true
+organizations:
+- GatwardIT
+- MyOrg
 -%>
 <%
 repo_base  = host_param('epel-repo-base') ? host_param('epel-repo-base') : 'https://dl.fedoraproject.org/pub/epel'
