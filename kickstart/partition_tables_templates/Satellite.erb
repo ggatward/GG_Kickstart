@@ -4,14 +4,19 @@ name: GatwardIT-Satellite
 model: Ptable
 oses:
 - RedHat
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
 %>
 
 zerombr
 clearpart --all --initlabel
 
-part /boot --fstype xfs --size=1024 --ondisk=vda --asprimary
-part pv.01 --size=1 --grow --ondisk=vda
-part pv.02 --size=1 --grow --ondisk=vdb
+part /boot --fstype xfs --size=1024 --ondisk=sda --asprimary
+part pv.01 --size=1 --grow --ondisk=sda
+part pv.02 --size=1 --grow --ondisk=sdb
 
 volgroup vg_sys --pesize=32768 pv.01
 volgroup vg_sat --pesize=32768 pv.02

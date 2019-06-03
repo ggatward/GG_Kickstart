@@ -1,14 +1,18 @@
 <%#
 kind: provision
 name: GatwardIT-ks_satellite
+model: ProvisioningTemplate
 oses:
-- Red Hat Enterprise Linux 7
+- RedHat
 locations:
 - Home
 organizations:
 - GatwardIT
 - MyOrg
 %>
+
+<%# NEEDS REWRITING INTO NEW FORMAT %>
+
 <%
   rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
   os_major = @host.operatingsystem.major.to_i
