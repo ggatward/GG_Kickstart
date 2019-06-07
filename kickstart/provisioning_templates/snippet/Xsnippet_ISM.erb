@@ -254,16 +254,16 @@ chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
 
 # Enable the daemons
 <% if use_systemd -%>
-systemctl enable auditd
+  systemctl enable auditd
 <% else -%>
-chkconfig auditd on
+  chkconfig auditd on
 <% end -%>
 
 # Append audit=1 to default kernel options
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
-sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb audit=1/}' /etc/default/grub
+  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb audit=1/}' /etc/default/grub
 <% else -%>
-sed -i 's/nofb/nofb audit=1/' /etc/grub.conf
+  sed -i 's/nofb/nofb audit=1/' /etc/grub.conf
 <% end -%>
 
 
@@ -296,9 +296,9 @@ sed -i 's/#$ModLoad immark/$ModLoad immark/g' /etc/rsyslog.conf
   echo "*.* @@<%= host_param('syslog_server') %>:514" >> /etc/rsyslog.conf
 <% end -%>
 <% if use_systemd -%>
-systemctl enable rsyslog
+  systemctl enable rsyslog
 <% else -%>
-chkconfig rsyslog on
+  chkconfig rsyslog on
 <% end -%>
 
 
@@ -317,6 +317,13 @@ Host *
 	SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE
 	SendEnv XMODIFIERS
 EOF
+
+
+echo ">>> Applying SSH server hardening"
+cat << EOF > /etc/ssh/sshd_config
+<%= snippet "GatwardIT-Xconfig_sshd_config" %>
+EOF
+
 
 <%# --------------------------- PAM STACK SECTION -----------------------------%>
 echo ">>> Applying pam hardening"
