@@ -8,54 +8,36 @@ organizations:
 - MyOrg
 %>
 
-<%
-ListenAddress = host_param('ssh_ListenAddress') || '0.0.0.0'
-Port = host_param('ssh_port') || '22'
-AddressFamily = host_param('ssh_AddressFamily') || 'inet'
-KexAlgorithms = host_param('ssh_KexAlgorithms') || 'ecdh-sha2-nistp384,ecdh-sha2-nistp521'
-Ciphers = host_param('ssh_Ciphers') || 'aes256-ctr'
-MACs = host_param('ssh_MACs') || 'hmac-sha2-512,hmac-sha2-256'
-AllowTcpForwarding = host_param('ssh_AllowTcpForwarding') || 'no'
-X11Forwarding = host_param('ssh_X11Forwarding') || 'no'
-PermitRootLogin = host_param('ssh_PermitRootLogin') || 'no'
-MaxAuthTries = host_param('ssh_MaxAuthTries') || '4'
-Banner = host_param('ssh_Banner') || '/etc/issue'
-LoginGraceTime = host_param('ssh_LoginGraceTime') || '60'
-ClientAlive_Interval = host_param('ssh_ClientAlive_Interval') || '172800'
-ClientAliveCountMax = host_param('ssh_ClientAliveCountMax') || '0'
-%>
-
-ListenAddress <%= ListenAddress %>
-Port <%= Port %>
+ListenAddress <%= host_param('ssh_ListenAddress') || '0.0.0.0' %>
+Port <%= host_param('ssh_port') || '22' %>
 Protocol 2
 
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ecdsa_key
 
-KexAlgorithms <%= KexAlgorithms %>
-Ciphers <%= Ciphers %>
-MACs <%= MACs %>
+KexAlgorithms <%= host_param('ssh_KexAlgorithms') || 'ecdh-sha2-nistp384,ecdh-sha2-nistp521' %>
+Ciphers <%= host_param('ssh_Ciphers') || 'aes256-ctr' %>
+MACs <%= host_param('ssh_MACs') || 'hmac-sha2-512,hmac-sha2-256' %>
 
-AddressFamily <%= AddressFamily %>
+AddressFamily <%= host_param('ssh_AddressFamily') || 'inet' %>
 
-AllowTcpForwarding <%= AllowTcpForwarding %>
+AllowTcpForwarding <%= host_param('ssh_AllowTcpForwarding') || 'no' %>
 GatewayPorts no
-PermitRootLogin <%= PermitRootLogin %>
+PermitRootLogin <%= host_param('ssh_PermitRootLogin') || 'no' %>
 HostbasedAuthentication no
 IgnoreRhosts yes
 PermitEmptyPasswords no
-Banner <%= Banner %>
-LoginGraceTime <%= LoginGraceTime %>
-X11Forwarding <%= X11Forwarding %>
+Banner <%= host_param('ssh_Banner') || '/etc/issue' %>
+LoginGraceTime <%= host_param('ssh_LoginGraceTime') || '60' %>
+X11Forwarding <%= host_param('ssh_X11Forwarding') || 'no' %>
 
 # Logging:
 SyslogFacility AUTHPRIV
 #LogLevel INFO
 
-
 # Authentication:
 #StrictModes yes
-MaxAuthTries <%= MaxAuthTries %>
+MaxAuthTries <%= host_param('ssh_MaxAuthTries') || '4' %>
 #MaxSessions 10
 #RSAAuthentication yes
 PubkeyAuthentication yes
@@ -91,8 +73,8 @@ AcceptEnv XMODIFIERS
 AllowAgentForwarding no
 UsePrivilegeSeparation sandbox
 
-ClientAliveInterval <%= ClientAlive_Interval %>
-ClientAliveCountMax <%= ClientAliveCountMax %>
+ClientAliveInterval <%= host_param('ssh_ClientAlive_Interval') || '172800' %>
+ClientAliveCountMax <%= host_param('ssh_ClientAliveCountMax') || '0' %>
 PrintLastLog no
 
 Subsystem	sftp	/usr/libexec/openssh/sftp-server
