@@ -218,8 +218,32 @@ if [ "$(virt-what)" == "" ]; then
   yum -q -y install usbguard
   # Install usbguard rules
 
-  # Start the service
-#  systemctl enable usbguard && systemctl start usbguard
+  # USBGuard - allow currently connected USB devices
+  usbguard generate-policy | sed 's/via-port ".*"//g' > /etc/usbguard/rules.conf
+
+  # Allow only one keyboard. Reject all storage devices with network or keyboard.
+  cat >>/etc/usbguard/rules.conf <<EOF
+allow id 3672:1692 serial "" name "SMARTUSB" with-interface { 03:01:01 03:01:02 }
+allow id 0624:0013 serial "" name "SC Secure KVM       " with-interface { 03:01:01 03:01:02 }
+allow id 050d:103a serial "00000001" name "Composite KB&Mouse Boot Device" with-interface { 03:01:01 03:01:02 }
+allow id 0624:1940 serial "TAG:  " name "" with-interface { 03:01:01 03:00:00 03:01:02 }
+allow id 0624:0200 serial "" name "USB DSRIQ" with-interface { 03:01:01 03:02:02 }
+allow id 050d:7cd7 serial "00070008-594D4317-2035363" name "Composite SKM  Device Emulator" with-interface { 03:01:01 03:00:02 03:01:02 03:00:00 03:00:00 }
+
+allow with-interface one-of { 03:00:01 03:01:01 } if !allowed-matches(with-interface one-of { 03:00:01 03:01:01 })
+allow with-interface one-of { 03:01:02 } if !allowed-matches(with-interface one-of { 03:01:02 })
+
+reject with-interface all-of { 08:*:* 03:00:* }
+reject with-interface all-of { 08:*:* 03:01:* }
+reject with-interface all-of { 08:*:* e0:*:* }
+reject with-interface all-of { 08:*:* 02:*:* }
+EOF
+
+# Allow users in rhel_sysadmin group to run usbguard commands
+sed -i '/^IPCAllowedGroups=.*/s/\(.*\)/\1role_usb_allowed /g' /etc/usbguard/usbguard-daemon.conf
+
+# Enable the service
+#  systemctl enable usbguard
 fi
 <% end %>
 
