@@ -63,6 +63,8 @@ The following Foreman parameters are used in the baseline component of this kick
 - freeipa_svcprincipal_pass = <password>        Password for IPA service account
 - freeipa_host_groups = <string>                Space seperated list of host_groups to add host to on enrolment
 
+# AD Trust Parameters
+- freeipa_ad_mods = [true|false]                Remove domain suffix from username display and homedir path [Default: false]
 ##################################################################################
 #
 # Red Hat subscription registration parameters

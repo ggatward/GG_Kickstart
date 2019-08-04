@@ -195,3 +195,9 @@ EOF
 fi
 
 <% end -%>
+
+<%# If IdM has a realm trust to AD, we may need to override the homedir and username format %>
+<% if host_param_true?('freeipa_ad_mods') -%>
+sed -i "/\[domain\/.*\]/aoverride_homedir = \/home\/%u" /etc/sssd/sssd.conf
+sed -i "/\[domain\/.*\]/afull_name_format = %1\$s" /etc/sssd/sssd.conf
+<% end -%>
