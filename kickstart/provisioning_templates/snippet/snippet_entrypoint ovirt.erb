@@ -53,18 +53,25 @@ sed -i '/^server 3.*/d' $ntp_config
 <%# Apply initial static ISM hardening - can be overridden if needed %>
 <%= snippet "GatwardIT-Xsnippet_ISM" %>
 
+# Need to use 4.2 for now due to Opteron G3 support
+yum -y install https://resources.ovirt.org/pub/yum-repo/ovirt-release42.rpm
+yum -y install cockpit-ovirt-dashboard vdsm-gluster
+
+if [ $(hostname | grep -c baremetal1) -eq 1 ]; then
+  yum -y install ovirt-engine-appliance gdeploy
+  # Only if oVirt 4.3+
+  #yum -y install gluster-ansible-roles
+fi
+
+# Also need to force downgrade to Ansible 2.7 for oVirt 4.2 :-(
+yum -y downgrade https://releases.ansible.com/ansible/rpm/nightly/stable-2.7/epel-7-x86_64/ansible-2.7.9-1.201903202136git.dedd76899a.el7.ans.noarch.rpm
+
 <%# Configurations for ovirt hyperconverged host %>
 cat << EOF >> /etc/hosts
 10.1.12.21   storage1
 10.1.12.22   storage2
 10.1.12.23   storage3
-10.1.12.24   storage4
 EOF
 
-#subscription-manager repos --enable rh-gluster-3-for-rhel-7-server-rpms
-#yum -y install glusterfs-server
-#systemctl enable glusterd
-#sed -i '/option event-threads 1/a\ \ \ \ option rpc-auth-allow-insecure on' /etc/glusterfs/glusterd.vol
-#sed -i 's/option ping-timeout.*/option ping-timeout 10/' /etc/glusterfs/glusterd.vol
-
-#firewall-offline-cmd --add-service glusterfs
+firewall-offline-cmd --add-service cockpit
+systemctl enable cockpit

@@ -231,25 +231,29 @@ chmod 0644 /etc/X11/Xwrapper.config
 #  semodule -i /tmp/my-krb5child.pp
 
   <%# Fix libcolor %>
-#  echo ">>> Fix libcolor"
-#  rm -f /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
-#  touch /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
-#  chattr +i /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+  echo ">>> Fix libcolor"
+  rm -f /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+  touch /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
+  chattr +i /usr/lib64/gnome-settings-daemon-3.0/libcolor.so
 <% end %>
 
 <%# Configure Firefox %>
-#echo ">>> Configure Firefox defaults"
-#chmod 755 /usr/lib64/firefox/defaults
+echo ">>> Configure Firefox defaults"
+chmod 755 /usr/lib64/firefox/defaults
 
 # Configure Firefox to read in our custom config
-#cat >> /usr/lib64/firefox/defaults/preferences/all-redhat.js << EOF
-#pref("general.config.obscure_value",    0);
-#pref("general.config.filename",         "mozilla-myorg.cfg");
-#EOF
+cat >> /usr/lib64/firefox/defaults/preferences/all-redhat.js << EOF
+pref("general.config.obscure_value",    0);
+pref("general.config.filename",         "mozilla-custom.cfg");
+EOF
 
 # Install our custom config
-#wget -q -O /usr/lib64/firefox/defaults/preferences/mozilla-myorg.cfg http://repo.example.org/desktop/configs/mozilla-myorg.cfg
-#chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-myorg.cfg
+cat << EOF > /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
+<%= snippet "GatwardIT-Xconfig_mozilla-custom.cfg" %>
+EOF
+chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
+
+
 
 # Install autostart scripts
 #echo ">>> Install Login Scripts"
@@ -258,6 +262,8 @@ chmod 0644 /etc/X11/Xwrapper.config
 
 #wget -q -O /etc/xdg/autostart/myorg_gui.desktop http://repo.example.org/desktop/scripts/myorg_gui.desktop
 #chmod 644 /etc/xdg/autostart/myorg_gui.desktop
+
+
 
 # Install and configure Citrix
 #echo ">>> Install Citrix Receiver"
@@ -289,11 +295,16 @@ chmod 0644 /etc/X11/Xwrapper.config
 #chmod 644 /etc/skel/.ICAClient/cache/Stores/StoreCache.ctx
 
 # Configure Printer
-#echo ">>> Configure Printing"
-#yum -q -y install cups foomatic-db-ppds foomatic-filters
-#firewall-offline-cmd --add-service ipp-client --add-service mdns
+echo ">>> Configure Printing"
+yum -q -y install cups foomatic-db-ppds foomatic-filters
+firewall-offline-cmd --add-service ipp-client --add-service mdns
 
-#wget -q -O /etc/cups/ppd/RICOH-MP-C4503.ppd http://repo.example.org/desktop/configs/RICOH-MP-C4503.ppd
-#chmod 644 /etc/cups/ppd/RICOH-MP-C4503.ppd
-#wget -q -O /etc/cups/printers.conf http://repo.example.org/desktop/configs/printers.conf
-#chmod 600 /etc/cups/printers.conf
+cat << EOF > /etc/cups/ppd/RICOH-MP-C4503.ppd
+<%= snippet "GatwardIT-Xconfig_RICOH-MP-C4503.ppd" %>
+EOF
+chmod 644 /etc/cups/ppd/RICOH-MP-C4503.ppd
+
+cat << EOF > /etc/cups/printers.conf
+<%= snippet "GatwardIT-Xconfig_printers.conf" %>
+EOF
+chmod 600 /etc/cups/printers.conf

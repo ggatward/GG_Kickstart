@@ -13,7 +13,7 @@ organizations:
 %>
 
 zerombr
-clearpart --drives sda --all --initlabel
+clearpart --all --initlabel
 
 part /boot --fstype xfs --size=1024 --ondisk=sda --asprimary
 part pv.01 --size=1 --grow --ondisk=sda
@@ -21,7 +21,7 @@ part pv.01 --size=1 --grow --ondisk=sda
 volgroup vg_sys --pesize=32768 pv.01
 
 logvol / --fstype xfs --name=root --vgname=vg_sys --size=10240 --fsoptions="noatime"
-logvol swap --fstype swap --name=swap --vgname=vg_sys --size=4096 >> /tmp/diskpart.cfg
+logvol swap --fstype swap --name=swap --vgname=vg_sys --size=4096
 logvol /home --fstype xfs --name=home --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev"
 logvol /tmp --fstype xfs --name=tmp --vgname=vg_sys --size=8192 --fsoptions="noatime,nosuid,nodev"
 logvol /var --fstype xfs --name=var --vgname=vg_sys --size=20480 --fsoptions="noatime,nosuid,nodev"
