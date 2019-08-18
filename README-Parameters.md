@@ -21,6 +21,7 @@ The following Foreman parameters are used in the baseline component of this kick
 - http-proxy-user = <user>                      Proxy user to be used for registration
 - http-proxy-password = <password>              Proxy password to be used for registration
 - package_upgrade = [true|false]                Perform full package update during build [Default: true]
+- local_homedirs = [true|false]                 User homedirs are on the local disk if true [Default: true]
 
 ##################################################################################
 #
