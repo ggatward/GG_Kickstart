@@ -1,0 +1,42 @@
+<%#
+kind: snippet
+name: GG-Xsnippet_splunkforwarder
+model: ProvisioningTemplate
+snippet: true
+organizations:
+- GatwardIT
+- MyOrg
+%>
+echo "+++++++++++++++++ Splunk Forwarder Installation Snippet +++++++++++++++++"
+<%# Install and configure splunkforwarder %>
+
+<%# Deploy splunk repo %>
+cat << EOF > /etc/yum.repos.d/splunk.repo
+[splunk]
+name=Splunk Repository
+baseurl=http://repo.example.com/splunk
+enabled=1
+gpgcheck=0
+EOF
+
+<%# Install splunkforwarder %>
+echo ">>> Installing splunkforwarder"
+yum -q -y install splunkforwarder
+
+echo ">>> Setting ACL on log directories for splunk"
+setfacl -R -m -d u:splunk:rx /var/log
+setfacl -R -m u:splunk:rx /var/log
+setfacl -R -b /var/log/audit
+
+echo ">>> Reconfigure auditd for splunk"
+sed -i 's/log_group = .*/log_group = splunk/g' /etc/audit/auditd.conf
+
+echo ">>> Configuring splunk deployment client"
+cat << EOF > /opt/splunkforwarder/etc/system/local/deploymentclient.conf
+[deployment-client]
+
+[target-broker:deploymentServer]
+targetUri = <%= host_param('splunk_host') %>:8089
+EOF
+
+chown -R splunk:splunk /opt/splunkforwarder

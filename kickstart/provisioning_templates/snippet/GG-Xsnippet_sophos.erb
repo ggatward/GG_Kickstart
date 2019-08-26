@@ -1,0 +1,20 @@
+<%#
+kind: snippet
+name: GG-Xsnippet_sophos
+model: ProvisioningTemplate
+snippet: true
+organizations:
+- GatwardIT
+- MyOrg
+%>
+echo "+++++++++++++++++++ Sophos Agent Installation Snippet +++++++++++++++++++++++++"
+
+mount -o remount,exec /tmp
+yum -q -y install savinstpkg
+chmod 755 /opt/sophos-av/bin
+
+cat << EOF > /etc/cron.hourly/sophos_update.cron
+#!/bin/sh
+/opt/sophos-av/bin/savupdate >/dev/null 2>&1
+EOF
+chmod 755 /etc/cron.hourly/sophos_update.cron

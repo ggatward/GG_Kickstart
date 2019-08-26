@@ -1,0 +1,619 @@
+<%#
+kind: snippet
+name: GG-Xsnippet_ISM
+model: ProvisioningTemplate
+snippet: true
+organizations:
+- GatwardIT
+- MyOrg
+%>
+
+<%
+rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+is_fedora = @host.operatingsystem.name == 'Fedora'
+os_major = @host.operatingsystem.major.to_i
+os_minor = @host.operatingsystem.minor.to_i
+use_ntp = host_param_true?('use-ntp') || (is_fedora && os_major < 16) || (rhel_compatible && os_major <= 6)
+use_systemd = (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7)
+%>
+
+echo "+++++++++++++++++++++++++ ISM Hardening Snippet +++++++++++++++++++++++++++++++"
+
+echo ">>> Disable wheel group sudo"
+sed -i 's/^%wheel\s.*ALL=(ALL).*/# %wheel\tALL=(ALL)\t\tALL/g' /etc/sudoers
+
+<%# -------------------- DISABLE SERVICES SECTION -----------------------------%>
+if rpm -q postfix >/dev/null; then
+echo ">>> Disable postfix"
+<% if use_systemd %>
+systemctl disable postfix.service
+<% else %>
+chkconfig postfix off
+<% end %>
+fi
+
+<%# ----------------------- KERNEL TUNING SECTION -----------------------------%>
+echo ">>> Kernel tuning parameters"
+<% if rhel_compatible && os_major == 6 %>
+cat << EOF > /etc/sysctl.d/05-hardening_el6.conf
+# Enable exec-sheield
+kernel.exec-shield = 1
+EOF
+<% end %>
+
+cat << EOF > /etc/sysctl.d/10-hardening.conf
+# Use process address space and heap randomisation
+kernel.randomize_va_space = 2
+# Prevent core dumps being created by suid binaries (EL6 only?)
+#fs.suid_dumptable = 0
+
+# Network hardening parameters
+net.ipv4.conf.all.forwarding = 0
+net.ipv4.ip_forward = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+net.ipv4.tcp_syncookies = 1
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+EOF
+
+<% if rhel_compatible && os_major >= 7 %>
+if (grep -q 'kernel\.exec-shield' /etc/sysctl.conf); then
+  sed -Ei "/^(#kernel\.exec-shield|kernel\.exec-shield).*/d" /etc/sysctl.conf
+fi
+<% end %>
+
+<%# ----------------------- ULIMIT HARDENING SECTION --------------------------%>
+echo ">>> User limits configuration"
+cat > /etc/security/limits.conf <<EOL
+## /etc/security/limits.conf
+## This file has had hardened values set by default to meet ISM requirements.
+#
+# This file sets the resource limits for the users logged in via PAM.
+# It does not affect resource limits of the system services.
+#
+# Also note that configuration files in /etc/security/limits.d directory,
+# which are read in alphabetical order, override the settings in this
+# file in case the domain is the same or more specific.
+# That means for example that setting a limit for wildcard domain here
+# can be overriden with a wildcard setting in a config file in the
+# subdirectory, but a user specific setting here can be overriden only
+# with a user specific setting in the subdirectory.
+
+# Disable Core Dumps
+*   hard    core        0
+*   soft    core        0
+# Limit concurrent logins
+*   hard    maxlogins   30
+
+EOL
+
+
+<%# ----------------------- UMASK HARDENING SECTION ---------------------------%>
+<% unless host_param_true?('ignore_umask_hardening') %>
+  echo ">>> Setting default umasks"
+  # Some of this hardening may not make sense and has simply been done to meet STIG SCAP tests.
+  for PFILE in /etc/bashrc /etc/csh.cshrc /etc/profile; do
+    sed -i 's/umask [0-9]\{3\}/umask 077/g' ${PFILE}
+  done
+
+  # Ensure daemon umask is 027 by default to pass SCAP tests.
+  if [ -f /etc/init.d/functions ]; then
+    sed -i "s/umask [0-9]\{3\}/umask 027/g" /etc/init.d/functions
+  fi
+<% end %>
+
+<%# --------------------------- AIDE/PRELINK SECTION --------------------------%>
+echo ">>> Setting up for AIDE"
+# AIDE Host-based intrustion detection software requires the pre-linking of binaries to be
+# disabled or it can trigger false positives.
+
+if grep -q '^PRELINKING' /etc/sysconfig/prelink 2> /dev/null; then
+  sed -i 's/PRELINKING.*/PRELINKING=no/g' /etc/sysconfig/prelink
+else
+  echo "# Pre-linking binaries should be disabled on servers to prevent problems with the 'aide' Host-based intrusion detection software." >> /etc/sysconfig/prelink
+  echo "PRELINKING=no" >> /etc/sysconfig/prelink
+fi
+
+# Disable any previous pre-linking
+if test -x /usr/sbin/prelink; then
+  /usr/sbin/prelink -ua
+fi
+
+yum -q -y install aide
+
+
+<%# ----------------------KERNEL MODULE CONFIG SECTION ------------------------%>
+echo ">>> Disabling kernel modules"
+cat > /etc/modprobe.d/disable_removable_media.conf <<EOL
+# Disable floppy devices
+install floppy /bin/true
+EOL
+# If we are a VM we can disable USB and CDROM devices - physical will use usbguard
+if [ "$(virt-what)" != "" ]; then
+  cat >> /etc/modprobe.d/disable_removable_media.conf <<EOL
+# Disable USB storage
+install usb-storage /bin/true
+
+# Disable CDROM devices
+install sr_mod /bin/true
+install cdrom /bin/true
+EOL
+fi
+
+
+cat > /etc/modprobe.d/disable_bluetooth.conf <<EOL
+# Note: Despite appearances using "/bin/true" as the command to load a module actually
+# disables that component.  For more information, run 'man modprobe.conf' or see
+# http://access.redhat.com/solutions/18978
+
+install net-pf-31 /bin/true
+install bluetooth /bin/true
+EOL
+
+
+cat > /etc/modprobe.d/disable_external_interfaces_dma.conf <<EOL
+# Note: Despite appearances using "/bin/true" as the command to load a module actually
+# disables that component.  For more information, run 'man modprobe.conf' or see
+# http://access.redhat.com/solutions/18978
+
+install firewire-core /bin/true
+install firewire-net /bin/true
+install firewire-sbp2 /bin/true
+install firewire-ohci /bin/true
+install ohci1394 /bin/true
+install sbp2 /bin/true
+install dv1394 /bin/true
+install raw1394 /bin/true
+install video1394 /bin/true
+EOL
+
+
+cat > /etc/modprobe.d/disable_uncommon_filesystem_types.conf <<EOL
+# Note: Despite appearances using "/bin/true" as the command to load a module actually
+# disables that component.  For more information, run 'man modprobe.conf' or see
+# http://access.redhat.com/solutions/18978
+
+install cramfs /bin/true
+install freevxfs /bin/true
+install jffs2 /bin/true
+install hfs /bin/true
+install hfsplus /bin/true
+install squashfs /bin/true
+install udf /bin/true
+EOL
+
+
+cat > /etc/modprobe.d/disable_uncommon_protocol_types.conf <<EOL
+# Note: Despite appearances using "/bin/true" as the command to load a module actually
+# disables that component.  For more information, run 'man modprobe.conf' or see
+# http://access.redhat.com/solutions/18978
+
+install dccp /bin/true
+install dccp_ipv4 /bin/true
+install dccp_ipv6 /bin/true
+install sctp /bin/true
+install rds /bin/true
+install tipc /bin/true
+install ieee1394 /bin/true
+EOL
+
+
+<%# --------------------------- USBGUARD SECTION ------------------------------%>
+<% if (is_fedora && os_major >= 27) || (rhel_compatible && ((os_major == 7 && os_minor >= 4) || os_major >= 8)) -%>
+# RHEL 7.4 introduced usbguard for granular control of USB devices.
+if [ "$(virt-what)" == "" ]; then
+  echo ">>> Installing usbguard"
+  yum -q -y install usbguard
+  # Install usbguard rules
+
+  # USBGuard - allow currently connected USB devices
+  usbguard generate-policy | sed 's/via-port ".*"//g' > /etc/usbguard/rules.conf
+
+  # Allow only one keyboard. Reject all storage devices with network or keyboard.
+  cat >>/etc/usbguard/rules.conf <<EOF
+allow id 3672:1692 serial "" name "SMARTUSB" with-interface { 03:01:01 03:01:02 }
+allow id 0624:0013 serial "" name "SC Secure KVM       " with-interface { 03:01:01 03:01:02 }
+allow id 050d:103a serial "00000001" name "Composite KB&Mouse Boot Device" with-interface { 03:01:01 03:01:02 }
+allow id 0624:1940 serial "TAG:  " name "" with-interface { 03:01:01 03:00:00 03:01:02 }
+allow id 0624:0200 serial "" name "USB DSRIQ" with-interface { 03:01:01 03:02:02 }
+allow id 050d:7cd7 serial "00070008-594D4317-2035363" name "Composite SKM  Device Emulator" with-interface { 03:01:01 03:00:02 03:01:02 03:00:00 03:00:00 }
+
+allow with-interface one-of { 03:00:01 03:01:01 } if !allowed-matches(with-interface one-of { 03:00:01 03:01:01 })
+allow with-interface one-of { 03:01:02 } if !allowed-matches(with-interface one-of { 03:01:02 })
+
+reject with-interface all-of { 08:*:* 03:00:* }
+reject with-interface all-of { 08:*:* 03:01:* }
+reject with-interface all-of { 08:*:* e0:*:* }
+reject with-interface all-of { 08:*:* 02:*:* }
+EOF
+
+# Allow users in rhel_sysadmin group to run usbguard commands
+sed -i '/^IPCAllowedGroups=.*/s/\(.*\)/\1role_usb_allowed /g' /etc/usbguard/usbguard-daemon.conf
+
+# Enable the service
+#  systemctl enable usbguard
+fi
+<% end %>
+
+<%# ---------------------------- AUDIT SECTION --------------------------------%>
+echo ">>> Configure audit"
+# Configure system to use audispd plugin to pass audit events to syslog for streaming
+<% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major >= 8) -%>
+  yum -q -y install audispd-plugins
+  syslog_conf=/etc/audit/plugins.d/syslog.conf
+<% else %>
+  syslog_conf=/etc/audisp/plugins.d/syslog.conf
+<% end %>
+
+# Redirect audit to LOCAL0 facility so it can be suppressed from /var/log/messages
+sed -i 's/active = no/active = yes/g' ${syslog_conf}
+sed -i 's/args = .*/args = LOG_LOCAL0/g' ${syslog_conf}
+
+# Configure how auditd sends events
+### SYNC flushing causes performance hits with slower disk IO
+#sed -i 's/flush = INCREMENTAL.*/flush = SYNC/g' /etc/audit/auditd.conf
+#sed -i 's/freq = .*/freq = 0/g' /etc/audit/auditd.conf
+sed -i 's/admin_space_left_action = SUSPEND/admin_space_left_action = SINGLE/g' /etc/audit/auditd.conf
+sed -i 's/disk_full_action = SUSPEND/disk_full_action = HALT/g' /etc/audit/auditd.conf
+sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/auditd.conf
+sed -i 's/disp_qos = .*/disp_qos = lossless/g' /etc/audit/auditd.conf
+
+# Load the audit rules
+cat << EOF > /etc/audit/rules.d/90-ism_audit.rules
+<%= snippet "GG-Xconfig_audit.rules" %>
+EOF
+chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
+
+# Enable the daemons
+<% if use_systemd -%>
+  systemctl enable auditd
+<% else -%>
+  chkconfig auditd on
+<% end -%>
+
+# Append audit=1 to default kernel options
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb audit=1/}' /etc/default/grub
+<% else -%>
+  sed -i 's/nofb/nofb audit=1/' /etc/grub.conf
+<% end -%>
+
+
+<%# ---------------------------- SYSLOG SECTION -------------------------------%>
+echo ">>> Configure syslog"
+yum -q -y install rsyslog
+<% if use_systemd -%>
+# Configure journalctl to save logs locally, and forward via rsyslog to remote host
+sed -i 's/#Storage=auto/Storage=persistent/g' /etc/systemd/journald.conf
+sed -i 's/#Compress=yes/Compress=yes/g' /etc/systemd/journald.conf
+sed -i 's/#SystemMaxUse=/SystemMaxUse=1.5G/g' /etc/systemd/journald.conf
+sed -i 's/#Seal=yes/Seal=yes/g' /etc/systemd/journald.conf
+sed -i 's/#ForwardToSyslog=yes/ForwardToSyslog=yes/g' /etc/systemd/journald.conf
+
+# Logging journal and audit events to syslog overflows the rate limits - turn them off
+sed -i 's/#RateLimitInterval=.*/RateLimitInterval=0/' /etc/systemd/journald.conf
+sed -i 's/#RateLimitBurst=.*/RateLimitBurst=0/' /etc/systemd/journald.conf
+<% end -%>
+sed -i '/#### GLOBAL/a$imjournalRatelimitInterval 0' /etc/rsyslog.conf
+sed -i '/#### GLOBAL/a$imjournalRatelimitBurst 0' /etc/rsyslog.conf
+sed -i '/#### GLOBAL/a# Disable Rate Limiting' /etc/rsyslog.conf
+
+# Suppress LOCAL0 messages (audit) from printing to the messages file
+sed -i 's/\*.info.*/\*.info;mail.none;authpriv.none;cron.none;local0.none     \/var\/log\/messages/g' /etc/rsyslog.conf
+
+# Configure rsyslog to forward logs to external server
+sed -i 's/#$ModLoad imklog/$ModLoad imklog/g' /etc/rsyslog.conf
+sed -i 's/#$ModLoad immark/$ModLoad immark/g' /etc/rsyslog.conf
+<% if host_param('syslog_server') -%>
+  echo "*.* @@<%= host_param('syslog_server') %>:514" >> /etc/rsyslog.conf
+<% end -%>
+<% if use_systemd -%>
+  systemctl enable rsyslog
+<% else -%>
+  chkconfig rsyslog on
+<% end -%>
+
+
+<%# --------------------------- SSH SECTION -----------------------------%>
+echo ">>> Applying SSH client hardening"
+cat << EOF > /etc/ssh/ssh_config
+Host *
+	HostKeyAlgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-rsa
+	KexAlgorithms ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group14-sha1
+	Ciphers aes256-ctr
+	MACs hmac-sha2-512,hmac-sha2-256,hmac-sha1
+	GSSAPIAuthentication yes
+	ForwardX11Trusted yes
+	SendEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+	SendEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+	SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+	SendEnv XMODIFIERS
+EOF
+
+
+echo ">>> Applying SSH server hardening"
+cat << EOF > /etc/ssh/sshd_config
+<%= snippet "GG-Xconfig_sshd_config" %>
+EOF
+
+
+<%# --------------------------- PAM STACK SECTION -----------------------------%>
+echo ">>> Applying pam hardening"
+for PAMFILE in /etc/pam.d/password-auth /etc/pam.d/system-auth; do
+
+  ## Update comments to explain configuration and warn users about authconfig ######################
+  sed -i 's/^# This file is auto-generated./# This file has been customised to meet ISM requirements./' ${PAMFILE}
+
+  ## Implement "Faillock" to prevent brute force login attacks #####################################
+  # 1/3 Second in the "auth" stack, after pam_env
+  sed -i '/^auth\s*required\s*pam_env.so/aauth        required      pam_faillock.so preauth silent deny=6 unlock_time=900 fail_interval=600' ${PAMFILE}
+
+  # 2/3 Second last in the "auth" stack, just before pam_deny
+  sed -i '/^auth\s*required\s*pam_deny.so$/iauth        [default=die] pam_faillock.so authfail deny=6 unlock_time=900 fail_interval=600' ${PAMFILE}
+
+  # 3/3 Top of the "account" stack (no options are required for pam_faillock here)
+  sed -i '/^account\s*required\s*pam_unix.so.*/iaccount     required      pam_faillock.so' ${PAMFILE}
+
+  # Additional for RHEL 7 only due to differences in RHEL 7.1 and 7.2 default pam.d files. This removes additional lines which cause faillock not to work.
+  # Remove Line "auth     [default=1 success=ok] pam_localuser.so
+  # Replace Line "auth     [success=done ignore=ignore default=die] pam_unix.so try_first_pass with "auth  sufficient  pam_unix.so try_first_pass"
+  # Replace Line "auth     sufficient   pam_sss.so forward_pass" with "auth   sufficient  pam_sss.so use_first_pass"
+  <% if rhel_compatible && os_major >= 7 -%>
+  sed -i '/^auth\s*\[default.*pam_localuser.so/d' ${PAMFILE}
+  sed -i 's/^auth\s*\[success.*pam_unix.so.*/auth        sufficient    pam_unix.so try_first_pass/' ${PAMFILE}
+  sed -i 's/^auth.*sufficient.*pam_sss.so\s*forward_pass.*/auth         sufficient    pam_sss.so use_first_pass/' ${PAMFILE}
+  <% end -%>
+
+  # RHEL 7.4 tweak to remove line that denies root login even from the console.
+  # Remove line with "auth        [default=1 ignore=ignore success=ok] pam_succeed_if.so uid >= 1000 quiet"
+  <% if rhel_compatible && os_major >= 7 -%>
+  sed -i '/^auth\s*\[default.*pam_succeed_if.so.*/d' ${PAMFILE}
+  <% end -%>
+
+  ## Enforce password strength for local accounts with pam_cracklib ################################
+  # Replace existing pam_pwquality which is first in the "password" stack.  This must be before pam_unix.
+  <% if rhel_compatible && os_major >= 7 -%>
+  sed -i 's/^password\s*requisite\s*pam_pwquality.so.*$/password    requisite     pam_pwquality.so try_first_pass local_users_only retry=5 difok=4 minlen=11 minclass=3 maxrepeat=3/' ${PAMFILE}
+  <% else -%>
+  sed -i 's/^password\s*requisite\s*pam_cracklib.so.*$/password    requisite     pam_cracklib.so try_first_pass retry=5 difok=4 minlen=11 minclass=3 maxrepeat=3/' ${PAMFILE}
+  <% end -%>
+
+  ## Prevent password reuse ########################################################################
+  <% if rhel_compatible && os_major >= 7 -%>
+  # On RHEL 7 use pam_pwhistory instead of the pam_unix "remember" option
+  # 1/2 Remove the "remember" option from the pam_unix module if it exists
+  sed -i '/^password\s*sufficient\s*pam_unix.so.*$/{s/ remember=[0-9]\{1,2\}//}' ${PAMFILE}
+  # 2/2 Second entry in the "password" stack on RHEL 7 after pam_pwquality and before pam_unix
+  sed -i '/^password\s*requisite\s*pam_pwquality.so.*$/apassword    requisite     pam_pwhistory.so use_authtok remember=8' ${PAMFILE}
+  <% else -%>
+  # For RHEL6 append remember=8
+  sed -i '/^password\s*sufficient\s*pam_unix.so.*$/{s/$/ remember=8/}' ${PAMFILE}
+  <% end -%>
+
+
+  ## Prevent blank passwords #######################################################################
+  sed -i '/.*pam_unix.so.*$/{s/ nullok//}' ${PAMFILE}
+
+  ## Remove unused fingerprint scanner support #####################################################
+  sed -i '/^auth\s*sufficient\s*pam_fprintd.so.*$/d' ${PAMFILE}
+
+  ## Display last failed login #####################################################################
+  <%# Not required on RHEL7+ %>
+  <% if rhel_compatible && os_major == 6 -%>
+  grep -q -E "^session\s*optional\s*pam_lastlog.so.*showfailed$" ${PAMFILE}
+  if [[ $? -ne 0 ]]; then
+    echo "session    optional    pam_lastlog.so nowtmp showfailed" >> ${PAMFILE}
+  fi
+  <% end -%>
+
+  ## For systems that use local home directories we use oddjobd to mount home directories
+  # We will only add the pam_oddjob_mkhomedir.so if localhome parameter exists
+  <% if host_param_true?('localhomedirs') %>
+  <% if rhel_compatible && os_major >= 7 -%>
+    sed -i '/.*session\s*optional\s*pam_systemd.so.*$/asession     optional     pam_oddjob_mkhomedir.so umask=0077' ${PAMFILE}
+  <% else -%>
+    sed -i '/.*session\s*required\s*pam_limits.so.$/asession     optional     pam_oddjob_mkhomedir.so umask=0077' ${PAMFILE}
+  <% end -%>
+  <% end %>
+
+done
+
+<%# ----------------------- PASSWORD DEFAULTS SECTION -------------------------%>
+echo ">>> Setting password defaults"
+# Harden default values in login.defs for local user accounts (except root)
+sed -i 's/^PASS_MAX_DAYS\s[0-9]\{0,6\}/PASS_MAX_DAYS   90/' /etc/login.defs
+sed -i 's/^PASS_MIN_DAYS\s[0-9]\{0,1\}/PASS_MIN_DAYS   1/' /etc/login.defs
+sed -i 's/^PASS_MIN_LEN\s[0-9]\{0,2\}/PASS_MIN_LEN    11/' /etc/login.defs
+sed -i 's/^PASS_WARN_AGE\s[0-9]\{0,2\}/PASS_WARN_AGE   14/' /etc/login.defs
+
+
+<%# ------------------------- REMOVE USERS SECTION ----------------------------%>
+echo ">>> Remove unused local user accounts"
+for user in ftp news uucp operator games gopher pcap; do
+  if (id ${user} > /dev/null 2>&1); then
+    userdel $user
+    # In case the userdel doesn't remove an empty group...
+    if ( grep -q "^${user}:" /etc/group ); then
+      groupdel $user
+    fi
+  fi
+done
+
+
+<%# ------------------------- DISABLE IPv6 SECTION ----------------------------%>
+<% unless host_param_false?('disable_ipv6') %>
+echo ">>> Disable IPv6"
+
+cat >> /etc/sysctl.d/20-ipv6.conf << EOL
+#
+#  Ensure that the IPv6 kernel modules are included during OS instance build.
+#  Where possible, the use of IPv6 will be disabled in configuration of OS
+#  applications/utilities.
+#
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOL
+for ETH_INF in $(ls -1 /sys/class/net | grep -v lo); do
+  echo "net.ipv6.conf.${ETH_INF}.disable_ipv6 = 1" >> /etc/sysctl.d/20-ipv6.conf
+done
+
+<%# Activate kernel variables that were set above %>
+sysctl -p /etc/sysctl.d/20-ipv6.conf >/dev/null
+
+<%# Clean up other things %>
+<%# 1. Comment IPv6 loopback address from /etc/hosts %>
+sed -i 's/^[[:space:]]*::/#::/' /etc/hosts
+
+<%# 3. Disable NFS services listening on IPv6 sockets %>
+sed -i 's/ v     inet6 / -     inet6 /g' /etc/netconfig
+
+<%# 4. Explicitly configure sshd to listen on IPv4 sockets only, else SSH %>
+<%# XForwarding will break (in case it's used) %>
+cat > /tmp/sshd_content << EOL
+
+# 2015 ISM, Control 0521
+# Dual Stack network devices and ICT equipment that support IPv6 must disable
+# the functionality unless it is being used
+AddressFamily inet
+
+EOL
+
+cp -p /etc/ssh/sshd_config /etc/ssh/sshd_config.disableipv6
+if (grep -q 'AddressFamily' /etc/ssh/sshd_config); then
+  sed -Ei "/^(#AddressFamily|AddressFamily).*/d" /etc/ssh/sshd_config
+fi
+cat /tmp/sshd_content >> /etc/ssh/sshd_config
+rm /tmp/sshd_content
+
+<%# 5. Explicitly configure postfix to use enable IPv4 only (in case it's used) %>
+if rpm -q postfix >/dev/null; then
+  sed -i 's/inet_protocols = all/inet_protocols = ipv4/g' /etc/postfix/main.cf
+fi
+
+<%# 6. Clean up /etc/sysconfig/network even though it doesn't prevent IPv6 being disabled %>
+<%# A system enrolled with IPA earlier in the ks will have a NISDOMAIN parameter in here. %>
+if [ `grep -c NISDOMAIN /etc/sysconfig/network` -ne 0 ]; then
+  NISDOMAIN=$(grep NISDOMAIN /etc/sysconfig/network | cut -f2 -d=)
+fi
+
+cat > /etc/sysconfig/network << EOL
+##
+# 2015 ISM, Control 0521
+# Dual Stack network devices and ICT equipment that support IPv6 must disable
+# the functionality unless it is being used
+#
+NETWORKING=yes
+NOZEROCONF=yes
+IPV6INIT=no
+IPV6_AUTOCONF=no
+EOL
+
+<%# Restore the original NISDOMAIN %>
+if [ ! -z $NISDOMAIN ]; then
+  echo "NISDOMAIN=$NISDOMAIN" >> /etc/sysconfig/network
+fi
+
+<%# 7. Explicilty configure chronyd to use IPv4 only %>
+<% unless use_ntp %>
+sed -i 's/^OPTIONS=.*/OPTIONS="-4"/g' /etc/sysconfig/chronyd
+<% end %>
+
+<%# 8. Explicilty configure nscd to use IPv4 only %>
+if (! grep -q 'OPTIONS' /etc/sysconfig/nscd 2>/dev/null); then
+  cat >> /etc/sysconfig/nscd << EOL
+## IPv6 is disabled by default to meet ISM control 0521.
+#  nscd caches both IPv4 and IPv6 sockets unless explicitly configured
+#  to start with a '-4' option for IPv4 only.
+OPTIONS="-4"
+EOL
+fi
+
+<%# Remove the DHCPv6 client listener firewall rule %>
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+firewall-offline-cmd --remove-service dhcpv6-client
+<% end -%>
+<% end %>
+
+<%# ------------------------- ISSUE BANNER SECTION ----------------------------%>
+echo ">>> Set login banner"
+cat << EOF > /etc/issue
+
+###############################################################
+#  All connections to this system are monitored and recorded  #
+#  Disconnect IMMEDIATELY if you are not an authorized user!  #
+###############################################################
+
+EOF
+
+
+<%# ------------------------- SELINUX HARDENING SECTION ----------------------------%>
+echo ">>> Setup SELinux"
+# Add selinux=1 kernel option
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+sed -i '/GRUB_CMDLINE_LINUX.*$/{s/nofb/nofb selinux=1 enforcing=1/}' /etc/default/grub
+<% else -%>
+sed -i 's/nofb/nofb selinux=1 enforcing=1/' /etc/grub.conf
+<% end -%>
+
+<% unless host_param_true?('server_gui') -%>
+  /usr/sbin/setsebool -P xguest_mount_media 0
+  /usr/sbin/setsebool -P xguest_use_bluetooth 0
+  /usr/sbin/setsebool -P httpd_builtin_scripting 0
+  /usr/sbin/setsebool -P httpd_enable_cgi 0
+  <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+  /usr/sbin/setsebool -P deny_ptrace 1
+  /usr/sbin/setsebool -P guest_exec_content 0
+  /usr/sbin/setsebool -P xguest_exec_content 0
+  <% end -%>
+<% end %>
+
+
+<%# Disable three-finger-salute reboot activation %>
+echo ">>> Disable Ctrl-Alt-Del"
+<% if use_systemd %>
+systemctl mask ctrl-alt-del.target && systemctl daemon-reload
+<% else %>
+echo 'exec /usr/bin/logger -p authpriv.notice -t init "Ctrl-Alt-Del was pressed and ignored"' > /etc/init/control-alt-delete.override
+<% end %>
+
+<%# Disable and/or remove not-required services %>
+<% if os_major == 6 -%>
+echo ">>> Disabling services"
+for service in abrtd abrt-oops; do
+  chkconfig ${service} off
+done
+<% end -%>
+yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
+
+
+<%# ------------------------- RNG SECTION ----------------------------%>
+<%# On physical servers and RHEL7.5+ enable Random Number Generator %>
+<% if os_major == '7' && os_minor <= '5' %>
+  if [ "$(virt-what)" != "" ]; then
+    yum -q -y install haveged
+    systemctl enable haveged
+  else
+    yum -q -y install rng-tools
+    systemctl enable rngd
+  fi
+<% else %>
+  yum -q -y install rng-tools
+  <% if os_major == '6' %>
+    chkconfig rngd on
+  <% else %>
+    systemctl enable rngd
+  <% end %>
+<% end %>
