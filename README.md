@@ -6,8 +6,9 @@ The base kickstart is a common bootstrap that will kickstart any host to a consi
 ## Foreman Configuration
 The file structure used in this Kickstart tree allows for importing into Foreman/Satellite using the TemplateSync plugin (Foreman 1.15 / Satellite 6.3).  The plugin can append a prefix to the name of all erb files, however for this kickstart I am NOT making use of this. The artifacts in the repository have unique names for my installation and use 'GG' as their prefix - if changing this string you will need to find/replace all instances within all of the erb files within this project.
 
+Please refer to the Foreman/Satellite installation manuals to install the template plugin.
 
-The following 'hammer' commands can be used to configure the TemplateSync plugin:
+Once installed and enabled, the following 'hammer' commands can be used to configure the TemplateSync plugin:
 ```
 hammer settings set --name template_sync_repo --value 'https://github.com/ggatward/GG_Kickstart.git'
 hammer settings set --name template_sync_branch --value 'development'
@@ -17,11 +18,17 @@ hammer settings set --name template_sync_lock --value 'false'
 hammer settings set --name template_sync_metadata_export_mode --value 'refresh'
 ```
 
-To import to Foreman/Satellite use the following API call:
+To import to Foreman/Satellite use the following API call, which could be used as a web-hook from a CI/CD environment:
 ```
-curl -H "Accept:application/json,version=2" -H "Content-Type:application/json" \
- -u admin:xxxxxx -k https://sat6.example.com/api/v2/templates/import -X POST
+# curl -k -H "Accept:application/json,version=2" -H "Content-Type:application/json" -X POST \
+ -u admin:xxxxxx https://sat6.example.com/api/v2/templates/import
 ```
+
+Alternatively, on the Foreman host itself you can run (as the root user):
+```
+# foreman-rake templates:sync
+```
+
 
 ### Host Groups
 When using this kickstart tree, the use of host groups in Foreman simplify greatly the amount of configuration required when provisioning new hosts. Most of the configuration in the host group is host parameter settings. Depending onthe environment, it may be worth nesting host groups, so that environment common parameters are defined at the parent level, with nested child host groups defining (or overriding) parameters as required.
