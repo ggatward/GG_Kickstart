@@ -30,69 +30,49 @@ Many parameters have default values, so it is not necessary to define all parame
 For example:
 
 '''
-root@foreman[~] # hammer hostgroup info --name LAB
+root@foreman[~] # hammer hostgroup create --name 'LAB' \
+  --architecture 'x86_64' \
+  --domain 'lab.home.example.com' \
+  --locations 'Home' \
+  --organizations 'MyOrg' \
+  --realm 'IPA.HOME.EXAMPLE.COM' \
+  --subnet 'VLAN4 - Lab' \
+  --group-parameters-attributes "
+      name=auto_update\, parameter_type=boolean\, value=true, \
+      name=enable-epel\, parameter_type=boolean\, value=false \
+      name=freeipa_ad_mods\, parameter_type=boolean\, value=true \
+      name=ignore_umask_hardening\, parameter_type=boolean\, value=true \
+      name=local_homedirs\, parameter_type=boolean\, value=true \
+      name=luks\, parameter_type=boolean\, value=false \
+      name=luks-passphrase\, parameter_type=string\, value='Pa$$w0rd'\, hidden_value=true \
+      name=luks-tang-key1\, parameter_type=string\, value='xxxxxxxxxxxxxxxxxxxxxxxxxxx'\, hidden_value=true \
+      name=luks-tang-key2\, parameter_type=string\, value='yyyyyyyyyyyyyyyyyyyyyyyyyyy'\, hidden_value=true \
+      name=luks-tang-server1\, parameter_type=string\, value=tang1.lab.home.example.com \
+      name=luks-tang-server2 \, parameter_type=string\, value=tang2.lab.home.example.com \
+      name=remote_execution_create_user\, parameter_type=boolean\, value=true \
+      name=remote_execution_effective_user_method\, parameter_type=string\, value=sudo \
+      name=remote_execution_ssh_user\, parameter_type=string\, value=svc-foreman-ansible \
+      name=server_gui\, parameter_type=boolean\, value=false \
+      name=ssh_PermitRootLogin\, parameter_type=string\, value=no \
+      "
 
-Id:               1
-Name:             LAB
-Title:            LAB
-Description:
+root@foreman[~] # hammer hostgroup create --name 'LAB-CENTOS7' \
+  --parent 'LAB' \
+  --locations 'Home' \
+  --organizations 'MyOrg' \
+  --compute-resource 'oVirt' \
+  --compute-profile 'Lab - PXE' \
+  --operatingsystem 'CentOS 7.6.1810' \
+  --medium 'CentOS mirror' \
+  --partition-table 'GG-Generic' \
+  --pxe-loader 'PXELinux BIOS' \
+  --group-parameters-attributes "
+      name=extra_snippet_entry\, parameter_type=string\, value=GG-snippet_entrypoint, \
+      name=ssh_PermitRootLogin\, parameter_type=string\, value=yes \
+      "
 
-Network:
-    Subnet ipv4: VLAN4 - Lab
-    Realm:       IPA.HOME.EXAMPLE.COM
-    Domain:      lab.home.example.com
-Operating system:
-    Architecture: x86_64
-Puppetclasses:
-
-Parameters:
-    auto_update => true
-    enable-epel => false
-    freeipa_ad_mods => true
-    ignore_umask_hardening => true
-    local_homedirs => true
-    luks => false
-    luks-passphrase => *****
-    luks-tang-key1 => xxxxxxxxxxxxxxxxxxxxxxxxxxx
-    luks-tang-key2 => yyyyyyyyyyyyyyyyyyyyyyyyyyy
-    luks-tang-server1 => tang1.lab.home.example.com
-    luks-tang-server2 => tang2.lab.home.example.com
-    remote_execution_create_user => true
-    remote_execution_effective_user_method => sudo
-    remote_execution_ssh_user => svc-foreman-ansible
-    server_gui => false
-    ssh_PermitRootLogin => no
-Locations:
-    Home
-Organizations:
-    MyOrg
-
-
-root@foreman[~] # hammer hostgroup info --name LAB-CENTOS7
-Id:               2
-Name:             LAB-CENTOS7
-Title:            LAB/LAB-CENTOS7
-Description:
-
-Parent:           LAB
-ComputeProfile:   Lab - PXE
-Network:
-
-Operating system:
-    Operating System: CentOS 7.6.1810
-    Medium:           CentOS mirror
-    Partition Table:  GG-Generic
-    PXE Loader:       PXELinux BIOS
-Puppetclasses:
-
-Parameters:
-    extra_snippet_entry => GG-snippet_entrypoint
-    ssh_PermitRootLogin => yes
-Locations:
-    Home
-Organizations:
-    MyOrg
 '''
+
 
 
 
