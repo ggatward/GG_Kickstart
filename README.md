@@ -6,6 +6,7 @@ The base kickstart is a common bootstrap that will kickstart any host to a consi
 ## Foreman Configuration
 The file structure used in this Kickstart tree allows for importing into Foreman/Satellite using the TemplateSync plugin (Foreman 1.15 / Satellite 6.3).  The plugin can append a prefix to the name of all erb files, however for this kickstart I am NOT making use of this. The artifacts in the repository have unique names for my installation and use 'GG' as their prefix - if changing this string you will need to find/replace all instances within all of the erb files within this project.
 
+### TemplateSync plugin
 Please refer to the Foreman/Satellite installation manuals to install the template plugin.
 
 Once installed and enabled, the following 'hammer' commands can be used to configure the TemplateSync plugin:
@@ -27,6 +28,15 @@ To import to Foreman/Satellite use the following API call, which could be used a
 Alternatively, on the Foreman host itself you can run (as the root user):
 ```
 # foreman-rake templates:sync
+```
+
+### Operating Systems
+Once the provisioning templates have been imported, they need to be made available to the Operating System profile(s) within Foreman that they will be used with.  The 'hammer' commands below can be used to assoiciate the partition table and provisioning templates from this repository with the OS.
+```
+# hammer os update --title 'CentOS 7.6.1810' \
+  --partition-tables 'GG-Generic,GG-Hypervisor' \
+  --config-templates 'GG_Kickstart,Kickstart default PXELinux' \
+  --provisioning-templates 'GG_Kickstart,Kickstart default PXELinux'
 ```
 
 
@@ -77,7 +87,11 @@ root@foreman[~] # hammer hostgroup create --name 'LAB-CENTOS7' \
       name=extra_snippet_entry\, parameter_type=string\, value=GG-snippet_entrypoint, \
       name=ssh_PermitRootLogin\, parameter_type=string\, value=yes \
       "
+```
 
+It may be further necessary to associate the kickstart template specifically with these host groups if multiple kickstart templates are used in the Foreman environment.
+```
+# hammer template combination create --provisioning-template 'GG_Kickstart' --hostgroup-title 'LAB/LAB-CENTOS7'
 ```
 
 
