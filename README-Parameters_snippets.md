@@ -24,7 +24,6 @@ The following Foreman parameters are used in the snippet extension component of 
 - auto_update_security = [true|false]           Only apply security updates [Default: false]
 - nessus_host = <fqdn>                          Nessus Scanner host to use. Nessus not installed if undef. [Default: ""]
 - splunk_host = <fqdn>                          Splunk Deployment server to register with. Splunkforwarder not installed if undef. [Default: ""]
-- localhomedirs = [true|false]
 - sophos = [true|false]                         Install sophos AV agent [Default: false]
 ```
 
@@ -42,4 +41,5 @@ The following Foreman parameters are used in the snippet extension component of 
 ```- ignore_umask_hardening = [true|false]         Don't apply umask hardening parameters [Default: false]
 - syslog_server = <fqdn>                        Syslog server to send events to [Default: ""]
 - disable_ipv6 = [true|false]                   Disable IPv6 support [Default: true]
+- stroom_audit = [true|false]                   Use Stroom audit agent [Default: false]
 ```
