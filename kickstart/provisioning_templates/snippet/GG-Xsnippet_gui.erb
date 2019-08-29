@@ -71,7 +71,7 @@ if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
     # Enable default background
     wget -q -O /usr/share/backgrounds/desktop_bground.jpg <%= host_param('gui_desktop_background') %>
     echo "[org/gnome/desktop/background]" > /etc/dconf/db/local.d/01-background
-    echo "picture-uri=file:///usr/share/backgrounds/desktop_bground.jpg" >> /etc/dconf/db/local.d/01-background
+    echo "picture-uri='file:///usr/share/backgrounds/desktop_bground.jpg'" >> /etc/dconf/db/local.d/01-background
     # echo "/org/gnome/desktop/background/picture-uri" > /etc/dconf/db/local.d/locks/background
   <% end %>
 

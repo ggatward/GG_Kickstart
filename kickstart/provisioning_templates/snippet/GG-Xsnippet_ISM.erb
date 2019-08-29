@@ -251,32 +251,38 @@ fi
 
 <%# ---------------------------- AUDIT SECTION --------------------------------%>
 echo ">>> Configure audit"
-# Configure system to use audispd plugin to pass audit events to syslog for streaming
-<% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major >= 8) -%>
-  yum -q -y install audispd-plugins
-  syslog_conf=/etc/audit/plugins.d/syslog.conf
-<% else %>
-  syslog_conf=/etc/audisp/plugins.d/syslog.conf
-<% end %>
+<% if !host_param_true?('stroom_audit') -%>
+  # Configure system to use audispd plugin to pass audit events to syslog for streaming
+  <% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major >= 8) -%>
+    yum -q -y install audispd-plugins
+    syslog_conf=/etc/audit/plugins.d/syslog.conf
+  <% else %>
+    syslog_conf=/etc/audisp/plugins.d/syslog.conf
+  <% end %>
 
-# Redirect audit to LOCAL0 facility so it can be suppressed from /var/log/messages
-sed -i 's/active = no/active = yes/g' ${syslog_conf}
-sed -i 's/args = .*/args = LOG_LOCAL0/g' ${syslog_conf}
+  # Redirect audit to LOCAL0 facility so it can be suppressed from /var/log/messages
+  sed -i 's/active = no/active = yes/g' ${syslog_conf}
+  sed -i 's/args = .*/args = LOG_LOCAL0/g' ${syslog_conf}
 
-# Configure how auditd sends events
-### SYNC flushing causes performance hits with slower disk IO
-#sed -i 's/flush = INCREMENTAL.*/flush = SYNC/g' /etc/audit/auditd.conf
-#sed -i 's/freq = .*/freq = 0/g' /etc/audit/auditd.conf
-sed -i 's/admin_space_left_action = SUSPEND/admin_space_left_action = SINGLE/g' /etc/audit/auditd.conf
-sed -i 's/disk_full_action = SUSPEND/disk_full_action = HALT/g' /etc/audit/auditd.conf
-sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/auditd.conf
-sed -i 's/disp_qos = .*/disp_qos = lossless/g' /etc/audit/auditd.conf
+  # Configure how auditd sends events
+  ### SYNC flushing causes performance hits with slower disk IO
+  #sed -i 's/flush = INCREMENTAL.*/flush = SYNC/g' /etc/audit/auditd.conf
+  #sed -i 's/freq = .*/freq = 0/g' /etc/audit/auditd.conf
+  sed -i 's/admin_space_left_action = SUSPEND/admin_space_left_action = SINGLE/g' /etc/audit/auditd.conf
+  sed -i 's/disk_full_action = SUSPEND/disk_full_action = HALT/g' /etc/audit/auditd.conf
+  sed -i 's/disk_error_action = SUSPEND/disk_error_action = SINGLE/g' /etc/audit/auditd.conf
+  sed -i 's/disp_qos = .*/disp_qos = lossless/g' /etc/audit/auditd.conf
 
-# Load the audit rules
-cat << EOF > /etc/audit/rules.d/90-ism_audit.rules
+  # Load the audit rules
+  cat << EOF > /etc/audit/rules.d/90-ism_audit.rules
 <%= snippet "GG-Xconfig_audit.rules" %>
 EOF
-chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
+  chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
+<% else -%>
+  <%# Install Stroom Agent %>
+  yum -y install stroom_auditd_agent
+  # rm -f /etc/systemd/system/auditd.service
+<% end -%>
 
 # Enable the daemons
 <% if use_systemd -%>
@@ -292,6 +298,10 @@ chmod 0600 /etc/audit/rules.d/90-ism_audit.rules
   sed -i 's/nofb/nofb audit=1/' /etc/grub.conf
 <% end -%>
 
+# For EL8 (v4 kernel) we also need to adjust the audit_backlog_limit
+<% if (is_fedora && os_major >= 29) || (rhel_compatible && os_major >= 8) -%>
+  sed -i '/GRUB_CMDLINE_LINUX.*$/{s/audit=1/audit=1 audit_backlog_limit=8192/}' /etc/default/grub
+<% end -%>
 
 <%# ---------------------------- SYSLOG SECTION -------------------------------%>
 echo ">>> Configure syslog"
@@ -618,4 +628,12 @@ yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
   <% else %>
     systemctl enable rngd
   <% end %>
+<% end %>
+
+
+<%# ------------------GLOBAL CRYPTO POLICY SECTION (EL8)------------%>
+<%# On EL8 servers the global crypto policy needs to be increased %>
+<% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 30) %>
+echo ">>> Setting global crypto policy"
+/usr/bin/update-crypto-policies --set FUTURE
 <% end %>

@@ -47,9 +47,9 @@ fi
 
 <% if host_param('ad_join_ou') -%>
   <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
-    ad_ou="--computer-ou=\"<%= host_param('ad_join_ou') %>\""
+    ad_ou="--computer-ou=<%= host_param('ad_join_ou') %>"
   <% else -%>
-    ad_ou="--domain-ou=\"<%= host_param('ad_join_ou') %>\""
+    ad_ou="--domain-ou=<%= host_param('ad_join_ou') %>"
   <% end -%>
 <% end -%>
 
@@ -67,9 +67,13 @@ default-shell = /bin/bash
   automatic-id-mapping = no
 EOF
 
-  realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> --unattended --install=/ $ad_hostname $ad_ou <<< '<%= host_param('ad_join_passwd')%>'
+<% if host_param('ad_join_ou') -%>
+realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> --unattended --install=/ $ad_hostname "$ad_ou" <<< '<%= host_param('ad_join_passwd')%>'
+<% else -%>
+realm join -U <%= host_param('ad_join_user') %> -v <%= host_param('ad_realm') %> --unattended --install=/ $ad_hostname <<< '<%= host_param('ad_join_passwd')%>'
+<% end -%>
 
-  # Allow any AD user to login - we can control access through access.conf if we need to
+# Allow any AD user to login - we can control access through access.conf if we need to
   echo "@reboot root /sbin/realm permit --all --unattended" > /etc/cron.d/adpermit.cron
 
   if [ $(cat /etc/krb5.conf | grep -v '#' | grep -c default_realm) -eq 0 ]; then

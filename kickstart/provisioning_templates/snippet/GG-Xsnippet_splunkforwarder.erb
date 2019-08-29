@@ -9,6 +9,12 @@ organizations:
 - GatwardIT
 - MyOrg
 %>
+<%
+rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+is_fedora = @host.operatingsystem.name == 'Fedora'
+os_major = @host.operatingsystem.major.to_i
+%>
+
 echo "+++++++++++++++++ Splunk Forwarder Installation Snippet +++++++++++++++++"
 <%# Install and configure splunkforwarder %>
 
@@ -26,7 +32,7 @@ echo ">>> Installing splunkforwarder"
 yum -q -y install splunkforwarder
 
 echo ">>> Setting ACL on log directories for splunk"
-setfacl -R -m -d u:splunk:rx /var/log
+setfacl -R -d -m u:splunk:rx /var/log
 setfacl -R -m u:splunk:rx /var/log
 setfacl -R -b /var/log/audit
 
@@ -41,4 +47,34 @@ cat << EOF > /opt/splunkforwarder/etc/system/local/deploymentclient.conf
 targetUri = <%= host_param('splunk_host') %>:8089
 EOF
 
+<%# Set splunk user prompt %>
+cat << EOF > /opt/splunkforwarder/.bashrc
+if [ $(hostname -f | grep -c '.qa.') -eq 1 ]; then
+  echo 'export PS1="\[\033[0;32m\]splunk> \[\033[0;36m\]@ \h.qa[\w] \\$\[\033[0m\] "' >> /root/.bashrc
+elif [ $(hostname -f | grep -c '.lab.') -eq 1 ]; then
+  echo 'export PS1="\[\033[0;32m\]splunk> \[\033[0;33m\]@ \h.lab[\w] \\$\[\033[0m\] "' >> /root/.bashrc
+else
+  echo 'export PS1="\[\033[0;32m\]splunk> \[\033[0;33m\]@ \h.[\w] \\$\[\033[0m\] "' >> /root/.bashrc
+fi
+EOF
 chown -R splunk:splunk /opt/splunkforwarder
+
+<%# Set system limits for splunk user %>
+cat << EOF > /etc/security/limits.d/splunk.conf
+splunk hard core 0
+splunk hard nofile 65535
+splunk soft nofile 65535
+splunk hard nproc 20480
+splunk soft nproc 20480
+splunk hard fsize unlimited
+splunk soft fsize unlimited
+EOF
+
+su - splunk -c '/opt/splunkforwarder/bin/splunk start --no-prompt --accept-license --answer-yes'
+su - splunk -c '/opt/splunkforwarder/bin/splunk stop'
+/opt/splunkforwarder/bin/splunk enable boot-start -systemd-managed 1 -user splunk
+
+<%# cgroup paths defined in the SplunkForwarder.service unit file for EL8 are incorrect %>
+<% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 30) -%>
+sed -i 's/init.scope\///g' /etc/systemd/system/SplunkForwarder.service
+<% end -%>

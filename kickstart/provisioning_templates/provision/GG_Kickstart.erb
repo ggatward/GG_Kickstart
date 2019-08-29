@@ -113,6 +113,10 @@ services --disabled gpm,sendmail,cups,pcmcia,isdn,rawdevices,hpoj,bluetooth,open
 repo --name="Server-Mysql"
 <% end -%>
 
+<% if @host.operatingsystem.name == 'RedHat' && os_major == 8 -%>
+repo --name Red_Hat_Enterprise_Linux_8_for_x86_64_-_AppStream_Kickstart_8 --baseurl http://repo.example.com/pulp/repos/MyOrg/Library/rhel_8_server/content/dist/rhel8/8.0/x86_64/appstream/kickstart/
+<% end -%>
+
 <% if @host.operatingsystem.name == 'Fedora' && os_major <= 16 -%>
 # Bootloader exception for Fedora 16:
 bootloader --append="<%= host_param('bootloader-append') || 'nofb quiet splash=quiet' %> <%= ks_console %>" <%= @grub_pass %>

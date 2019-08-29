@@ -82,9 +82,15 @@ organizations:
     atomic = @host.operatingsystem.respond_to?(:atomic) ? @host.operatingsystem.atomic? : host_param_true?('atomic')
 
     if host_param('kt_activation_keys')
+      <%# TODO - Satellite vs non-satellite hosted RHEL
       subscription_manager_certpkg_url = subscription_manager_configuration_url(@host)
       subscription_manager_atomic_url = subscription_manager_configuration_url(@host, false)
       subscription_manager_org = @host.rhsm_organization_label
+      %>
+      subscription_manager_certpkg_url = host_param('subscription_manager_configuration_url')
+      subscription_manager_atomic_url = host_param('subscription_manager_configuration_url')
+      subscription_manager_org = host_param('rhsm_organization_label')
+
       activation_key = host_param('kt_activation_keys')
     else
       subscription_manager_certpkg_url = host_param('subscription_manager_certpkg_url')
@@ -176,7 +182,7 @@ organizations:
   <% if host_param('subscription_manager_repos') %>
     # workaround for RHEL 6.4 bug https://bugzilla.redhat.com/show_bug.cgi?id=1008016
     subscription-manager repos --list > /dev/null
-    <%= "subscription-manager repos --enable #{host_param('subscription_manager_repos').gsub(',', ' --enable')}" %>
+    <%= "subscription-manager repos --enable #{host_param('subscription_manager_repos').gsub(',', ' --enable ')}" %>
   <% end %>
 
   <% if !atomic %>

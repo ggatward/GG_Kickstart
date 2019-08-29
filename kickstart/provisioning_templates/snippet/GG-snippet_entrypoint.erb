@@ -24,6 +24,12 @@ use_systemd = (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7
 <%# Install root CA certs %>
 <%= snippet "GG-Xsnippet_trust_certs" %>
 
+<% unless host_param_false?('local_homedirs') -%>
+  echo "+++++++++++++++++++++++++++++ Configuring oddjob ++++++++++++++++++++++++++++++"
+  yum -y install oddjob oddjob-mkhomedir
+  systemctl enable oddjobd
+<% end -%>
+
 <% if host_param('ad_realm') -%>
 echo "+++++++++++++++++++++++ Joining Active Directory Domain +++++++++++++++++++++++"
 <%= snippet 'GG-Xsnippet_ad_register' %>
@@ -44,7 +50,9 @@ sed -i 's/^server 0.*/server ntp1.core.home.gatwards.org iburst/' $ntp_config
 sed -i 's/^server 1.*/server ntp2.core.home.gatwards.org iburst/' $ntp_config
 sed -i 's/^server 2.*/server ntp3.core.home.gatwards.org iburst/' $ntp_config
 sed -i '/^server 3.*/d' $ntp_config
-
+if [ $(grep -c ntp1.core $ntp_config) -eq 0 ]; then echo 'server ntp1.core.home.gatwards.org iburst' >> $ntp_config; fi
+if [ $(grep -c ntp2.core $ntp_config) -eq 0 ]; then echo 'server ntp2.core.home.gatwards.org iburst' >> $ntp_config; fi
+if [ $(grep -c ntp3.core $ntp_config) -eq 0 ]; then echo 'server ntp3.core.home.gatwards.org iburst' >> $ntp_config; fi
 
 <%# Check if we are a virtual guest - if so then install the tools. CentOS requires EPEL repo %>
 yum -q -y install virt-what
@@ -111,7 +119,7 @@ fi
 
 <%# If the 'splunk_host' host parameter is defined, install the splunkforwarder package %>
 <% if host_param('splunk_host') -%>
-  <% snippet "GG-Xsnippet_splunkforwarder" %>
+  <%= snippet "GG-Xsnippet_splunkforwarder" %>
 <% end -%>
 
 <%# Apply initial static ISM hardening - can be overridden if needed %>
