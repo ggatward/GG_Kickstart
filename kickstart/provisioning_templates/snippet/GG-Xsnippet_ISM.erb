@@ -303,6 +303,34 @@ EOF
   sed -i '/GRUB_CMDLINE_LINUX.*$/{s/audit=1/audit=1 audit_backlog_limit=8192/}' /etc/default/grub
 <% end -%>
 
+<%# --------------------------- FIREWALL SECTION ------------------------------%>
+<%# Enable default firewall logging %>
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+  firewall-cmd --set-log-denied=unicast
+<% else -%>
+  # EL6 iptables log segment - TBD
+<% end -%>
+
+<%# Set _DROP and _REJECT logs to thier own logfile instead of syslog, and create logrotate %>
+cat << EOF > /etc/rsyslog.d/iptables.conf
+:msg,contains,"_DROP" /var/log/iptables.log
+:msg,contains,"_REJECT" /var/log/iptables.log
+& stop
+EOF
+
+cat << EOF > /etc/logrotate.d/iptables
+/var/log/iptables.log {
+    nocreate
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    copytruncate
+    minsize 100k
+}
+EOF
+
 <%# ---------------------------- SYSLOG SECTION -------------------------------%>
 echo ">>> Configure syslog"
 yum -q -y install rsyslog
