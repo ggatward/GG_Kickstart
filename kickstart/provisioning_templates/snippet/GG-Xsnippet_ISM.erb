@@ -98,7 +98,9 @@ cat > /etc/security/limits.conf <<EOL
 *   soft    core        0
 # Limit concurrent logins
 *   hard    maxlogins   30
-
+# Limit max open files per user
+*   hard    nofile      32767
+*   soft    nofile      16384
 EOL
 
 
@@ -306,7 +308,9 @@ EOF
 <%# --------------------------- FIREWALL SECTION ------------------------------%>
 <%# Enable default firewall logging %>
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
-  firewall-cmd --set-log-denied=unicast
+  firewall-offline-cmd --set-log-denied=unicast
+  firewall-offline-cmd --remove-service ssh
+  firewall-offline-cmd --add-rich-rule 'rule service name="ssh" log prefix="ACCEPT " accept'
 <% else -%>
   # EL6 iptables log segment - TBD
 <% end -%>
@@ -315,6 +319,7 @@ EOF
 cat << EOF > /etc/rsyslog.d/iptables.conf
 :msg,contains,"_DROP" /var/log/iptables.log
 :msg,contains,"_REJECT" /var/log/iptables.log
+:msg,contains,"ACCEPT " /var/log/iptables.log
 & stop
 EOF
 
@@ -325,9 +330,6 @@ cat << EOF > /etc/logrotate.d/iptables
     missingok
     rotate 7
     compress
-    delaycompress
-    copytruncate
-    minsize 100k
 }
 EOF
 
