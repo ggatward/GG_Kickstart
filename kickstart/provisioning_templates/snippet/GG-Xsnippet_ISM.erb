@@ -310,7 +310,7 @@ EOF
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
   firewall-offline-cmd --set-log-denied=unicast
   firewall-offline-cmd --remove-service ssh
-  firewall-offline-cmd --add-rich-rule 'rule service name="ssh" log prefix="ACCEPT " accept'
+  firewall-offline-cmd --add-rich-rule 'rule service name="ssh" log prefix="ACCEPT: " accept'
 <% else -%>
   # EL6 iptables log segment - TBD
 <% end -%>
@@ -319,7 +319,7 @@ EOF
 cat << EOF > /etc/rsyslog.d/iptables.conf
 :msg,contains,"_DROP" /var/log/iptables.log
 :msg,contains,"_REJECT" /var/log/iptables.log
-:msg,contains,"ACCEPT " /var/log/iptables.log
+:msg,contains,"ACCEPT: " /var/log/iptables.log
 & stop
 EOF
 
