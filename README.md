@@ -47,34 +47,53 @@ Many parameters have default values, so it is not necessary to define all parame
 For example:
 
 ```
-root@foreman[~] # hammer hostgroup create --name 'LAB' \
+root@foreman[~] # hammer hostgroup create --name 'GG-SOE' \
   --architecture 'x86_64' \
-  --domain 'lab.home.example.com' \
   --locations 'Home' \
   --organizations 'MyOrg' \
   --realm 'IPA.HOME.EXAMPLE.COM' \
-  --subnet 'VLAN4 - Lab' \
   --group-parameters-attributes "
       name=auto_update\, parameter_type=boolean\, value=true, \
-      name=enable-epel\, parameter_type=boolean\, value=false \
-      name=freeipa_ad_mods\, parameter_type=boolean\, value=true \
-      name=ignore_umask_hardening\, parameter_type=boolean\, value=true \
-      name=local_homedirs\, parameter_type=boolean\, value=true \
-      name=luks\, parameter_type=boolean\, value=false \
-      name=luks-passphrase\, parameter_type=string\, value='Pa$$w0rd'\, hidden_value=true \
-      name=luks-tang-key1\, parameter_type=string\, value='xxxxxxxxxxxxxxxxxxxxxxxxxxx'\, hidden_value=true \
-      name=luks-tang-key2\, parameter_type=string\, value='yyyyyyyyyyyyyyyyyyyyyyyyyyy'\, hidden_value=true \
-      name=luks-tang-server1\, parameter_type=string\, value=tang1.lab.home.example.com \
-      name=luks-tang-server2 \, parameter_type=string\, value=tang2.lab.home.example.com \
-      name=remote_execution_create_user\, parameter_type=boolean\, value=true \
-      name=remote_execution_effective_user_method\, parameter_type=string\, value=sudo \
-      name=remote_execution_ssh_user\, parameter_type=string\, value=svc-foreman-ansible \
-      name=server_gui\, parameter_type=boolean\, value=false \
-      name=ssh_PermitRootLogin\, parameter_type=string\, value=no \
+      name=enable-epel\, parameter_type=boolean\, value=false, \
+      name=freeipa_ad_mods\, parameter_type=boolean\, value=true, \
+      name=ignore_umask_hardening\, parameter_type=boolean\, value=true, \
+      name=local_homedirs\, parameter_type=boolean\, value=true, \
+      name=luks\, parameter_type=boolean\, value=false, \
+      name=luks-passphrase\, parameter_type=string\, value='ChangeMe'\, hidden_value=true, \
+      name=luks-tang-key1\, parameter_type=string\, value='xxxxxxxxxxxxxxxxxxxxxxxxxxx'\, hidden_value=true, \
+      name=luks-tang-key2\, parameter_type=string\, value='yyyyyyyyyyyyyyyyyyyyyyyyyyy'\, hidden_value=true, \
+      name=luks-tang-server1\, parameter_type=string\, value='tang1.core.home.example.com', \
+      name=luks-tang-server2 \, parameter_type=string\, value='tang2.core.home.example.com', \
+      name=ntp-server \, parameter_type=string\, value='ntp1.core.home.example.com', \
+      name=remote_execution_create_user\, parameter_type=boolean\, value=true, \
+      name=remote_execution_effective_user_method\, parameter_type=string\, value='sudo', \
+      name=remote_execution_ssh_user\, parameter_type=string\, value='svc-foreman-ansible', \
+      name=server_gui\, parameter_type=boolean\, value=false, \
+      name=ssh_PermitRootLogin\, parameter_type=string\, value='no', \
+      name=time-zone\, parameter_type=string\, value='Australia/Sydney', \
+      name=extra_snippet_entry\, parameter_type=string\, value='GG-snippet_entrypoint', \
+      name=subscription_manager\, parameter_type=boolean\, value=true, \
+      name=subscription_manager_username\, parameter_type=string\, value='user@redhat.com', \
+      name=subscription_manager_password\, parameter_type=string\, value='ChangeMe'\, hidden_value=true \
       "
 
-root@foreman[~] # hammer hostgroup create --name 'LAB-CENTOS7' \
-  --parent 'LAB' \
+root@foreman[~] # hammer hostgroup create --name 'LAB' \
+  --parent 'GG-SOE' \
+  --domain 'lab.home.example.com' \
+  --locations 'Home' \
+  --organizations 'MyOrg' \
+  --subnet 'VLAN4 - Lab' \
+  --group-parameters-attributes "
+      name=luks\, parameter_type=boolean\, value=false, \
+      name=luks-tang-key1\, parameter_type=string\, value='xxxxxxxxxxxxxxxxxxxxxxxxxxx'\, hidden_value=true, \
+      name=luks-tang-key2\, parameter_type=string\, value='yyyyyyyyyyyyyyyyyyyyyyyyyyy'\, hidden_value=true, \
+      name=luks-tang-server1\, parameter_type=string\, value='tang1.lab.home.example.com', \
+      name=luks-tang-server2 \, parameter_type=string\, value='tang2.lab.home.example.com', \
+      name=ssh_PermitRootLogin\, parameter_type=string\, value='yes' \
+      "
+
+root@foreman[~] # hammer hostgroup create --name 'CENTOS7' \
+  --parent 'GG-SOE/LAB' \
   --locations 'Home' \
   --organizations 'MyOrg' \
   --compute-resource 'oVirt' \
@@ -84,9 +103,9 @@ root@foreman[~] # hammer hostgroup create --name 'LAB-CENTOS7' \
   --partition-table 'GG-Generic' \
   --pxe-loader 'PXELinux BIOS' \
   --group-parameters-attributes "
-      name=extra_snippet_entry\, parameter_type=string\, value=GG-snippet_entrypoint, \
-      name=ssh_PermitRootLogin\, parameter_type=string\, value=yes \
+      name=auto_update\, parameter_type=boolean\, value=false \
       "
+
 ```
 
 It may be further necessary to associate the kickstart template specifically with these host groups if multiple kickstart templates are used in the Foreman environment.
