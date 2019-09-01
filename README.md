@@ -113,6 +113,12 @@ It may be further necessary to associate the kickstart template specifically wit
 # hammer template combination create --provisioning-template 'GG_Kickstart' --hostgroup-title 'LAB/LAB-CENTOS7'
 ```
 
+We can also ensure that Foreman uses the PXE templates delivered in this project by default by setting the global defaults.
+```
+# hammer settings set --name global_PXELinux --value 'GG-PXELinux global default'
+# hammer settings set --name local_boot_PXELinux --value 'GG-PXELinux default local boot'
+```
+Don't forget to rebuild the default PXE templates if this is done :-)
 
 ## Parameters
 
