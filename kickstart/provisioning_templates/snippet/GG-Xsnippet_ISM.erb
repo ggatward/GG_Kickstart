@@ -667,3 +667,17 @@ yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 echo ">>> Setting global crypto policy"
 /usr/bin/update-crypto-policies --set FUTURE
 <% end %>
+
+
+<%# --------------------------- MISC HARDENING -----------------------------%>
+<%# Set timeout on root shell %>
+cat << EOF >> /root/.bashrc
+
+# root shell timeout
+TMOUT=1800
+readonly TMOUT
+export TMOUT
+EOF
+
+<%# Additional mountpoint hardening %>
+echo "tmpfs /dev/shm tmpfs defaults,nodev,nosuid,noexec 0 0" >> /etc/fstab
