@@ -1,0 +1,10 @@
+<%#
+name: GG-PXELinux default memdisk
+model: ProvisioningTemplate
+kind: PXELinux
+%>
+DEFAULT memdisk
+
+LABEL memdisk
+    KERNEL memdisk
+    APPEND initrd=<%= @initrd %> harddisk raw

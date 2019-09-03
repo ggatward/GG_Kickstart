@@ -1,0 +1,16 @@
+<%#
+name: GG-PXELinux default local boot
+snippet: false
+model: ProvisioningTemplate
+kind: PXELinux
+%>
+<%# Used to boot provisioned hosts, do not associate or change the name. %>
+
+DEFAULT menu
+PROMPT 0
+MENU TITLE GatwardIT PXE Menu
+TIMEOUT 70
+TOTALTIMEOUT 6000
+ONTIMEOUT <%= global_setting("default_pxe_item_local", "local_chain_hd0") %>
+
+<%= snippet "GG-PXELinux_chainload" %>

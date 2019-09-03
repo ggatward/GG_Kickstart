@@ -1,0 +1,16 @@
+<%#
+kind: snippet
+name: GG-PXELinux_windows
+model: ProvisioningTemplate
+snippet: true
+%>
+
+MENU GOTO windows
+MENU BEGIN windows
+MENU TITLE Windows WDS Installs
+
+LABEL Chainload WDS
+  KERNEL pxechn.c32
+  APPEND 172.22.1.222::\Boot\x86\wdsnbp.com -W
+
+MENU END

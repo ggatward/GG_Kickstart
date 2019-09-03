@@ -1,0 +1,92 @@
+<%#
+kind: snippet
+name: GG-Xconfig_sshd_config
+model: ProvisioningTemplate
+snippet: true
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
+%>
+<%
+rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+is_fedora = @host.operatingsystem.name == 'Fedora'
+os_major = @host.operatingsystem.major.to_i
+%>
+
+ListenAddress <%= host_param('ssh_ListenAddress') || '0.0.0.0' %>
+Port <%= host_param('ssh_port') || '22' %>
+Protocol 2
+
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+
+<% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 30) %>
+# On EL8 systems, system-wide crupto policy overrides these parameters
+<% end %>
+KexAlgorithms <%= host_param('ssh_KexAlgorithms') || 'ecdh-sha2-nistp384,ecdh-sha2-nistp521' %>
+Ciphers <%= host_param('ssh_Ciphers') || 'aes256-ctr' %>
+MACs <%= host_param('ssh_MACs') || 'hmac-sha2-512,hmac-sha2-256' %>
+
+AddressFamily <%= host_param('ssh_AddressFamily') || 'inet' %>
+
+AllowTcpForwarding <%= host_param('ssh_AllowTcpForwarding') || 'no' %>
+GatewayPorts no
+PermitRootLogin <%= host_param('ssh_PermitRootLogin') || 'no' %>
+HostbasedAuthentication no
+IgnoreRhosts yes
+PermitEmptyPasswords no
+Banner <%= host_param('ssh_Banner') || '/etc/issue' %>
+LoginGraceTime <%= host_param('ssh_LoginGraceTime') || '60' %>
+X11Forwarding <%= host_param('ssh_X11Forwarding') || 'no' %>
+
+# Logging:
+SyslogFacility AUTHPRIV
+#LogLevel INFO
+
+# Authentication:
+#StrictModes yes
+MaxAuthTries <%= host_param('ssh_MaxAuthTries') || '4' %>
+#MaxSessions 10
+#RSAAuthentication yes
+PubkeyAuthentication yes
+AuthorizedKeysFile	.ssh/authorized_keys
+AuthorizedKeysCommand none
+#AuthorizedKeysCommandUser nobody
+#PasswordAuthentication yes
+ChallengeResponseAuthentication no
+
+# Kerberos options
+#KerberosAuthentication no
+#KerberosOrLocalPasswd yes
+#KerberosTicketCleanup yes
+#KerberosGetAFSToken no
+#KerberosUseKuserok yes
+
+# GSSAPI options
+GSSAPIAuthentication yes
+GSSAPICleanupCredentials yes
+#GSSAPIStrictAcceptorCheck yes
+#GSSAPIKeyExchange no
+
+# WARNING: 'UsePAM no' is not supported in Red Hat Enterprise Linux and may cause several
+# problems.
+UsePAM yes
+
+# Accept locale-related environment variables
+AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+AcceptEnv XMODIFIERS
+
+AllowAgentForwarding no
+UsePrivilegeSeparation sandbox
+
+ClientAliveInterval <%= host_param('ssh_ClientAlive_Interval') || '172800' %>
+ClientAliveCountMax <%= host_param('ssh_ClientAliveCountMax') || '0' %>
+PrintLastLog no
+
+Subsystem	sftp	/usr/libexec/openssh/sftp-server
+
+PermitUserEnvironment no
