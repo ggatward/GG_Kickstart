@@ -71,7 +71,7 @@ elif [ $(virt-what | grep -c rhev) -eq 1 -o $(virt-what | grep -c ovirt) -eq 1 ]
       subscription-manager repos --enable rhel-6-server-rhv-4-agent-rpms
     <% end -%>
   <% end -%>
-  <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) -%>
+  <% if (rhel_compatible && ((os_major == 7 && os_minor >= 6) || (os_major >= 8))) || (is_fedora && os_major >= 29) -%>
     agent=qemu-guest-agent
   <% else -%>
     agent=ovirt-guest-agent
