@@ -235,20 +235,29 @@ chmod 0644 /etc/X11/Xwrapper.config
 <% end %>
 
 <%# Configure Firefox %>
+yum -q -y install firefox
 echo ">>> Configure Firefox defaults"
 chmod 755 /usr/lib64/firefox/defaults
 
 # Configure Firefox to read in our custom config
-cat >> /usr/lib64/firefox/defaults/preferences/all-redhat.js << EOF
+<% if is_fedora %>
+  prefs_dir=/etc/firefox/pref
+  prefs_file=/usr/lib64/firefox/browser/defaults/preferences/firefox-redhat-default-prefs.js
+<% else %>
+  prefs_dir=/usr/lib64/firefox/defaults/preferences
+  prefs_file=${prefs_dir}/all-redhat.js
+<% end %>
+cat << EOF >> ${prefs_file}
+
 pref("general.config.obscure_value",    0);
 pref("general.config.filename",         "mozilla-custom.cfg");
 EOF
 
 # Install our custom config
-cat << EOF > /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
+cat << EOF > ${prefs_dir}/mozilla-custom.cfg
 <%= snippet "GG-Xconfig_mozilla-custom.cfg" %>
 EOF
-chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
+chmod 644 ${prefs_dir}/mozilla-custom.cfg
 
 
 
@@ -267,8 +276,8 @@ chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
 #mkdir -p /tmp/rtmeok  # Needed for hdx-realtime install
 #yum -q -y install ICAClient citrix-hdx-realtime-media-engine
 
-#cp /etc/pki/ca-trust/source/anchors/GG-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
-#chmod 644 /etc/pki/ca-trust/source/anchors/GG-CA2.pem
+#cp /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
+#chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
 #/opt/Citrix/ICAClient/util/ctx_rehash
 
 # Copy global default configuration
@@ -293,7 +302,7 @@ chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
 
 # Configure Printer
 echo ">>> Configure Printing"
-yum -q -y install cups foomatic-db-ppds foomatic-filters
+yum -q -y install cups foomatic-db-ppds <% if rhel_compatible %>foomatic-filters<% end %>
 firewall-offline-cmd --add-service ipp-client --add-service mdns
 
 cat << EOF > /etc/cups/ppd/RICOH-MP-C4503.ppd

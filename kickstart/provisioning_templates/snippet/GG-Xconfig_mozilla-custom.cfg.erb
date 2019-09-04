@@ -45,8 +45,7 @@ try {
 
     // Disable disk cache
     defaultPref("browser.cache.disk.capacity", 0);
-    lockiles/file_contexts.homedirs
-    Pref("browser.cache.disk.enable", false);
+    lockPref("browser.cache.disk.enable", false);
 
     // Set Proxy
     lockPref("config.use_system_prefs", false);
@@ -107,7 +106,7 @@ try {
 
     // Prevent users disabling this warning
     pref("security.warn_leaving_secure", true);
-    loclPref("security.warn_viewing_mixed", true);
+    lockPref("security.warn_viewing_mixed", true);
 
     // Enable TLS 1.2
     pref("security.tls.version.max", 3);
