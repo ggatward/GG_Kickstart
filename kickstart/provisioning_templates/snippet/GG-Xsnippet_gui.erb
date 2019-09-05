@@ -57,16 +57,16 @@ if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
   echo "idle-activation-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
   echo "lock-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
   <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
-  echo "lock-delay=uint32 900" >> /etc/dconf/db/local.d/02-screensaver
+  echo "lock-delay=uint32 180" >> /etc/dconf/db/local.d/02-screensaver
   <% else %>
-  echo "lock-delay=900" >> /etc/dconf/db/local.d/02-screensaver
+  echo "lock-delay=180" >> /etc/dconf/db/local.d/02-screensaver
   <% end %>
   echo "" >> /etc/dconf/db/local.d/02-screensaver
   echo "[org/gnome/desktop/session]" >> /etc/dconf/db/local.d/02-screensaver
   <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
-  echo "idle-delay=uint32 900" >> /etc/dconf/db/local.d/02-screensaver
+  echo "idle-delay=uint32 180" >> /etc/dconf/db/local.d/02-screensaver
   <% else %>
-  echo "idle-delay=900" >> /etc/dconf/db/local.d/02-screensaver
+  echo "idle-delay=180" >> /etc/dconf/db/local.d/02-screensaver
   <% end %>
   echo "" >> /etc/dconf/db/local.d/02-screensaver
   <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
