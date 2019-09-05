@@ -154,7 +154,7 @@ yum -q -y remove gnome-initial-setup
 <% if (rhel_compatible && os_major >= 8) || is_fedora %>
 cat << EOF > /usr/local/bin/xwarn.sh
 sleep 1
-zenity --title "WARNING" --no-wrap --question --text "`cat /etc/issue`\n\nContinue?\n"
+zenity --title "WARNING" --no-wrap --question --text "\$(cat /etc/issue)\n\nContinue?\n"
 if [ \$? -ne 0 ]; then gnome-session-quit --no-prompt; fi
 EOF
   chmod 755  /usr/local/bin/xwarn.sh
@@ -169,7 +169,7 @@ EOF
 <% else %>
 cat << EOF > /etc/X11/xinit/xinitrc.d/xwarn.sh
 sleep 1
-zenity --title "WARNING" --no-wrap --question --text "`cat /etc/issue`\n\nContinue?\n"
+zenity --title "WARNING" --no-wrap --question --text "\$(cat /etc/issue)\n\nContinue?\n"
 if [ \$? -ne 0 ]; then exit 1; fi
 EOF
   chmod 755 /etc/X11/xinit/xinitrc.d/xwarn.sh
