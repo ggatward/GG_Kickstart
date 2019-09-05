@@ -344,6 +344,7 @@ sed -i 's/#$ModLoad immark/$ModLoad immark/g' /etc/rsyslog.conf
 
 <%# --------------------------- FIREWALL SECTION ------------------------------%>
 <%# Enable default firewall logging %>
+echo ">>> Configure firewall logging"
 <% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
   firewall-offline-cmd --set-log-denied=unicast
   firewall-offline-cmd --remove-service ssh
@@ -667,6 +668,8 @@ yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 <%# ------------------GLOBAL CRYPTO POLICY SECTION (EL8)------------%>
 <%# On EL8 servers the global crypto policy needs to be increased %>
 <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 30) %>
+### Commented out for now as RedHat CDN and Fedora repos only use 2048bit RSA ###
+### 'FUTURE MODE' requires a minimum of 3072bit RSA ###
 #echo ">>> Setting global crypto policy"
 #/usr/bin/update-crypto-policies --set FUTURE
 <% end %>

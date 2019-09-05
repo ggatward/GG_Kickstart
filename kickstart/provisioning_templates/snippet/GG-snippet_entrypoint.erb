@@ -129,3 +129,10 @@ fi
 <% if host_param_true?('sophos') %>
   <%= snippet "GG-Xsnippet_sophos" %>
 <% end %>
+
+<%# update all the base packages from the updates repository - in case we have extra updates %>
+if [ -f /usr/bin/dnf ]; then
+  dnf -y update
+else
+  yum -t -y update
+fi
