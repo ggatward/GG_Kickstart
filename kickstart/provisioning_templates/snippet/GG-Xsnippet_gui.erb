@@ -54,19 +54,19 @@ if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
 
   # Enforce screensaver
   echo "[org/gnome/desktop/screensaver]" > /etc/dconf/db/local.d/02-screensaver
-  echo "idle-activation-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
   echo "lock-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
   <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
-  echo "lock-delay=uint32 180" >> /etc/dconf/db/local.d/02-screensaver
+  echo "lock-delay=uint32 300" >> /etc/dconf/db/local.d/02-screensaver
   <% else %>
-  echo "lock-delay=180" >> /etc/dconf/db/local.d/02-screensaver
+  echo "idle-activation-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
+  echo "lock-delay=300" >> /etc/dconf/db/local.d/02-screensaver
   <% end %>
   echo "" >> /etc/dconf/db/local.d/02-screensaver
   echo "[org/gnome/desktop/session]" >> /etc/dconf/db/local.d/02-screensaver
   <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
-  echo "idle-delay=uint32 180" >> /etc/dconf/db/local.d/02-screensaver
+  echo "idle-delay=uint32 300" >> /etc/dconf/db/local.d/02-screensaver
   <% else %>
-  echo "idle-delay=180" >> /etc/dconf/db/local.d/02-screensaver
+  echo "idle-delay=300" >> /etc/dconf/db/local.d/02-screensaver
   <% end %>
   echo "" >> /etc/dconf/db/local.d/02-screensaver
   <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
@@ -253,11 +253,22 @@ chmod 0644 /etc/X11/Xwrapper.config
 
 
 <% if rhel_compatible && os_major == 7 %>
-#  echo ">>> Applying krb5child SELinux policy"
-#  wget -q -O /tmp/my-krb5child.te http://repo.example.org/desktop/selinux/my-krb5child.te
-#  checkmodule -< -m -o /tmp/my-krb5child.mod /tmp/my-krb5child.te
-#  semodule_package -m /tmp/my-krb5child.mod -o /tmp/my-krb5child.pp
-#  semodule -i /tmp/my-krb5child.pp
+#   echo ">>> Applying krb5child SELinux policy"
+#   cat << EOF > /tmp/my-krb5child.te
+# module my-krb5child 1.0;
+#
+# require {
+#     type sssd_t;
+#     type kernel_t;
+#     class key { read view write };
+# }
+#
+# #============= sssd_t ==============
+# allow sssd_t kernel_t:key { read view write };
+# EOF
+#   checkmodule -M -m -o /tmp/my-krb5child.mod /tmp/my-krb5child.te
+#   semodule_package -m /tmp/my-krb5child.mod -o /tmp/my-krb5child.pp
+#   semodule -i /tmp/my-krb5child.pp
 
   <%# Fix libcolor %>
   echo ">>> Fix libcolor"
