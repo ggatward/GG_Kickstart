@@ -14,7 +14,6 @@ rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsys
 is_fedora = @host.operatingsystem.name == 'Fedora'
 os_major = @host.operatingsystem.major.to_i
 %>
-
 ListenAddress <%= host_param('ssh_ListenAddress') || '0.0.0.0' %>
 Port <%= host_param('ssh_port') || '22' %>
 Protocol 2

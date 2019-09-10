@@ -202,4 +202,7 @@ fi
 <% if host_param_true?('freeipa_ad_mods') -%>
 sed -i "/\[domain\/.*\]/aoverride_homedir = \/home\/%u" /etc/sssd/sssd.conf
 sed -i "/\[domain\/.*\]/afull_name_format = %1\$s" /etc/sssd/sssd.conf
+
+# Set kerberos up to resolve shortnames
+sed -i "s/dns_canonicalize_hostname.*/dns_canonicalize_hostname = true/g" /etc/krb5.conf
 <% end -%>
