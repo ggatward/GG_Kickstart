@@ -21,6 +21,13 @@ use_ntp = host_param_true?('use-ntp') || (is_fedora && os_major < 16) || (rhel_c
 use_systemd = (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7)
 %>
 
+
+<%# update all the base packages from the updates repository - in case we have extra updates %>
+if [ -f /usr/bin/dnf ]; then
+  dnf -y update
+else
+  yum -t -y update
+fi
 yum -y install policycoreutils-python
 
 <%# Install root CA certs %>
