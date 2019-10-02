@@ -28,7 +28,12 @@ if [ -f /usr/bin/dnf ]; then
 else
   yum -t -y update
 fi
-yum -y install policycoreutils-python
+
+<% if (is_fedora && os_major >= 29) || (rhel_compatible && os_major >= 8) -%>
+  yum -y install checkpolicy
+<% else -%>
+  yum -y install policycoreutils-python
+<% end -%>
 
 <%# Install root CA certs %>
 <%= snippet "GG-Xsnippet_trust_certs" %>
