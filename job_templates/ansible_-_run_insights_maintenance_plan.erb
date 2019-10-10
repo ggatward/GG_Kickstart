@@ -1,0 +1,28 @@
+<%#
+name: Ansible - Run insights maintenance plan
+snippet: false
+template_inputs:
+- name: plan_id
+  required: true
+  input_type: user
+  description: The playbook for the rule coming from insights.
+  advanced: false
+  value_type: plain
+- name: organization_id
+  required: true
+  input_type: user
+  description: The Foreman organization associated with the Insights account
+  advanced: false
+  value_type: plain
+model: JobTemplate
+job_category: Ansible Playbook
+description_format: Insights maintenance plan for host
+provider_type: Ansible
+kind: job_template
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+
+<%= insights_remediation(input(:plan_id), input(:organization_id)) %>

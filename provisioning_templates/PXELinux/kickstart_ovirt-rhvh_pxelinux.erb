@@ -1,0 +1,16 @@
+<%#
+name: Kickstart oVirt-RHVH PXELinux
+snippet: false
+model: ProvisioningTemplate
+kind: PXELinux
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+DEFAULT rhvh
+
+LABEL rhvh
+KERNEL <%= @kernel %>
+APPEND initrd=<%= @initrd %> inst.ks=<%= foreman_url("provision") %> inst.stage2=<%= medium_uri %> local_boot_trigger=<%= foreman_url("built") %> intel_iommu=on
+IPAPPEND 2

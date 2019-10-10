@@ -1,0 +1,74 @@
+<%#
+name: Module Action - Ansible Default
+snippet: false
+template_inputs:
+- name: pre_script
+  required: false
+  input_type: user
+  description: A script to run prior to the module action
+  advanced: true
+  value_type: plain
+- name: action
+  required: true
+  input_type: user
+  description: The module action enable, install etc
+  options: |-
+    list
+    info
+    enable
+    disable
+    install
+    update
+    remove
+    provides
+    reset
+  advanced: false
+  value_type: plain
+- name: module_spec
+  required: false
+  input_type: user
+  description: The module specification. module:stream/profile
+  advanced: false
+  value_type: plain
+- name: options
+  required: false
+  input_type: user
+  description: Other optional flags for the action
+  advanced: false
+  value_type: plain
+- name: post_script
+  required: false
+  input_type: user
+  description: A script to run after the module action
+  advanced: true
+  value_type: plain
+model: JobTemplate
+job_category: Ansible Modules
+description_format: Module %{action} %{module_spec}
+provider_type: Ansible
+kind: job_template
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+
+<% command = "dnf -y module #{input(:action)} #{input(:module_spec)} #{input(:options)}" %>
+
+---
+- hosts: all
+  <%- if input('pre_script').present? -%>
+  pre_tasks:
+    - shell: "<%= input('pre_script') %>"
+  <%- end -%>
+  tasks:
+    - shell: |
+<%=     indent(8) { command } %>
+      register: out
+      args:
+        warn: false
+    - debug: var=out
+  <%- if input('post_script').present? -%>
+  post_tasks:
+    - shell: "<%= input('post_script') %>"
+  <%- end -%>

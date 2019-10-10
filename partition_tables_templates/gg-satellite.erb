@@ -1,0 +1,34 @@
+<%#
+name: GG-Satellite
+snippet: false
+model: Ptable
+os_family: Redhat
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+
+zerombr
+clearpart --all --initlabel
+
+part /boot --fstype xfs --size=1024 --ondisk=sda --asprimary
+part pv.01 --size=1 --grow --ondisk=sda
+part pv.02 --size=1 --grow --ondisk=sdb
+
+volgroup vg_sys --pesize=32768 pv.01
+volgroup vg_satellite --pesize=32768 pv.02
+
+logvol / --fstype xfs --name=root --vgname=vg_sys --size=10240 --fsoptions="noatime"
+logvol swap --fstype swap --name=swap --vgname=vg_sys --size=4096 >> /tmp/diskpart.cfg
+logvol /home --fstype xfs --name=home --vgname=vg_sys --size=512 --fsoptions="noatime,nosuid,nodev"
+logvol /tmp --fstype xfs --name=tmp --vgname=vg_sys --size=4096 --fsoptions="noatime,nosuid,nodev"
+logvol /var --fstype xfs --name=var --vgname=vg_sys --size=10240 --fsoptions="noatime,nosuid,nodev"
+logvol /var/log/ --fstype xfs --name=log --vgname=vg_sys --size=8192 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/log/audit --fstype xfs --name=audit --vgname=vg_sys --size=1024 --fsoptions="noatime,nosuid,nodev,noexec"
+
+logvol /var/lib/mongodb --fstype xfs --name=mongodb --vgname=vg_satellite --size=51200 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/lib/pgsql --fstype xfs --name=pgsql --vgname=vg_satellite --size=10240 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/lib/pulp --fstype xfs --name=pulp --vgname=vg_satellite --size=51200 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/lib/qpidd --fstype xfs --name=qpidd --vgname=vg_satellite --size=5120 --fsoptions="noatime,nosuid,nodev,noexec"
+logvol /var/spool/squid --fstype xfs --name=squid --vgname=vg_satellite --size=10240 --fsoptions="noatime,nosuid,nodev,noexec"

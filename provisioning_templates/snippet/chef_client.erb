@@ -1,0 +1,11 @@
+<%#
+name: chef_client
+snippet: true
+model: ProvisioningTemplate
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+echo "Bootstraping chef"
+<%= snippet_if_exists(host_param('chef_bootstrap_template') || 'chef-client omnibus bootstrap') %>

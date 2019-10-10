@@ -1,0 +1,13 @@
+<%#
+name: Kickstart default
+snippet: false
+model: Ptable
+os_family: Redhat
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+zerombr
+clearpart --all --initlabel
+autopart <%= host_param('autopart_options') %>

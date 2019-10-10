@@ -1,0 +1,14 @@
+<%#
+name: iPXE default local boot
+snippet: false
+model: ProvisioningTemplate
+kind: iPXE
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+#!ipxe
+
+# Skips booting from network and continues booting from next device
+exit

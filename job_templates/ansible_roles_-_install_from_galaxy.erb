@@ -1,0 +1,38 @@
+<%#
+name: Ansible Roles - Install from Galaxy
+snippet: false
+template_inputs:
+- name: ansible_roles_list
+  required: true
+  input_type: user
+  description: "List of roles in Ansible Galaxy to install, separated by commas, e.g:
+    \"mysql, nginx\"\r\n\r\nThe default location is the 'roles_path' configured on
+    /etc/ansible/ansible.cfg, you may override it by filling the 'location' input.
+    Click on \"Advanced\" to see it."
+  advanced: false
+  value_type: plain
+- name: location
+  required: false
+  input_type: user
+  description: A particular directory where you want the downloaded roles to be placed.
+  advanced: true
+  value_type: plain
+model: JobTemplate
+job_category: Ansible Galaxy
+description_format: Install roles '%{ansible_roles_list}' from Galaxy
+provider_type: Ansible
+kind: job_template
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+
+---
+- hosts: all
+  tasks:
+    - command: ansible-galaxy install {{ item }} <% "-p #{input('location')}" if input('location').present? %>
+      register: out
+      with_items:
+        - <%= input('ansible_roles_list') %>
+    - debug: var=out
