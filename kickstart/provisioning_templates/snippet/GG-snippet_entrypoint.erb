@@ -21,6 +21,20 @@ use_ntp = host_param_true?('use-ntp') || (is_fedora && os_major < 16) || (rhel_c
 use_systemd = (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7)
 %>
 
+
+<%# update all the base packages from the updates repository - in case we have extra updates %>
+if [ -f /usr/bin/dnf ]; then
+  dnf -y update
+else
+  yum -t -y update
+fi
+
+<% if (is_fedora && os_major >= 29) || (rhel_compatible && os_major >= 8) -%>
+  yum -y install checkpolicy
+<% else -%>
+  yum -y install policycoreutils-python
+<% end -%>
+
 <%# Install root CA certs %>
 <%= snippet "GG-Xsnippet_trust_certs" %>
 
@@ -87,6 +101,23 @@ elif [ $(virt-what | grep -c rhev) -eq 1 -o $(virt-what | grep -c ovirt) -eq 1 ]
   <% else %>
     chkconfig ${agent} on
   <% end %>
+
+  cat << EOF > /tmp/ovirt_guest_agent.te
+module ovirt_guest_agent 1.0;
+
+require {
+      type proc_net_t;
+      type virt_qemu_ga_t;
+      class file { getattr open read };
+}
+
+#============= virt_qemu_ga_t ==============
+allow virt_qemu_ga_t proc_net_t:file { getattr open read };
+EOF
+  checkmodule -M -m -o /tmp/ovirt_guest_agent.mod /tmp/ovirt_guest_agent.te
+  semodule_package -m /tmp/ovirt_guest_agent.mod -o /tmp/ovirt_guest_agent.pp
+  semodule -i /tmp/ovirt_guest_agent.pp
+
 fi
 
 <%# Disable Transparent Huge Pages %>
@@ -129,3 +160,10 @@ fi
 <% if host_param_true?('sophos') %>
   <%= snippet "GG-Xsnippet_sophos" %>
 <% end %>
+
+<%# update all the base packages from the updates repository - in case we have extra updates %>
+if [ -f /usr/bin/dnf ]; then
+  dnf -y update
+else
+  yum -t -y update
+fi

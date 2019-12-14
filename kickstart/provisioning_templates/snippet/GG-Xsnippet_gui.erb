@@ -54,18 +54,32 @@ if [ $(rpm -qa | grep -c ^gdm-) -ne 0 ]; then
 
   # Enforce screensaver
   echo "[org/gnome/desktop/screensaver]" > /etc/dconf/db/local.d/02-screensaver
-  echo "idle-activation-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
   echo "lock-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
-  echo "lock-delay=900" >> /etc/dconf/db/local.d/02-screensaver
+  <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
+  echo "lock-delay=uint32 300" >> /etc/dconf/db/local.d/02-screensaver
+  <% else %>
+  echo "idle-activation-enabled=true" >> /etc/dconf/db/local.d/02-screensaver
+  echo "lock-delay=300" >> /etc/dconf/db/local.d/02-screensaver
+  <% end %>
   echo "" >> /etc/dconf/db/local.d/02-screensaver
   echo "[org/gnome/desktop/session]" >> /etc/dconf/db/local.d/02-screensaver
-  echo "idle-delay=900" >> /etc/dconf/db/local.d/02-screensaver
+  <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
+  echo "idle-delay=uint32 300" >> /etc/dconf/db/local.d/02-screensaver
+  <% else %>
+  echo "idle-delay=300" >> /etc/dconf/db/local.d/02-screensaver
+  <% end %>
   echo "" >> /etc/dconf/db/local.d/02-screensaver
+  <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 29) %>
+  echo "/org/gnome/desktop/session/idle-delay" >> /etc/dconf/db/local.d/locks/screensaver
+  echo "/org/gnome/desktop/screensaver/lock-enabled" >> /etc/dconf/db/local.d/locks/screensaver
+  echo "/org/gnome/desktop/screensaver/lock-delay" >> /etc/dconf/db/local.d/locks/screensaver
+  <% else %>
   echo "[org/gnome/desktop/lockdown]" >> /etc/dconf/db/local.d/02-screensaver
   echo "disable-lock-screen=false" >> /etc/dconf/db/local.d/02-screensaver
   echo "/org/gnome/desktop/screensaver/idle-activation-enabled" > /etc/dconf/db/local.d/locks/screensaver
   echo "/org/gnome/desktop/session/idle-delay" > /etc/dconf/db/local.d/locks/session
   echo "/org/gnome/desktop/lockdown/disable-lock-screen" > /etc/dconf/db/local.d/locks/lockdown
+  <% end %>
 
   <% if host_param('gui_desktop_background') %>
     # Enable default background
@@ -137,11 +151,29 @@ yum -q -y remove gnome-initial-setup
 ######################
 
 <%# Setup last login banner %>
-#mkdir -p /etc/X11/xinit/scripts
-#wget -q -O /etc/X11/xinit/scripts/lastuserlogin.pl http://repo.example.org/desktop/scripts/lastuserlogin.pl
-#wget -q -O /etc/X11/xinit/scripts/xwarn.sh http://repo.example.org/desktop/scripts/xwarn.sh
-#chmod +x /etc/X11/xinit/scripts/*
-#ln -s /etc/X11/xinit/scripts/xwarn.sh /etc/X11/xinit/xinitrc.d/xwarn.sh
+<% if (rhel_compatible && os_major >= 8) || is_fedora %>
+cat << EOF > /usr/local/bin/xwarn.sh
+sleep 1
+zenity --title "WARNING" --no-wrap --question --text "\$(cat /etc/issue)\n\nContinue?\n"
+if [ \$? -ne 0 ]; then gnome-session-quit --no-prompt; fi
+EOF
+  chmod 755  /usr/local/bin/xwarn.sh
+  cat << EOF > /etc/xdg/autostart/xwarn.desktop
+[Desktop Entry]
+Type=Application
+Name=Login Warning
+Exec=/usr/local/bin/xwarn.sh
+OnlyShowIn=GNOME;MATE;Unity;Cinnamon;
+EOF
+
+<% else %>
+cat << EOF > /etc/X11/xinit/xinitrc.d/xwarn.sh
+sleep 1
+zenity --title "WARNING" --no-wrap --question --text "\$(cat /etc/issue)\n\nContinue?\n"
+if [ \$? -ne 0 ]; then exit 1; fi
+EOF
+  chmod 755 /etc/X11/xinit/xinitrc.d/xwarn.sh
+<% end %>
 
 <%# Configure XRDP %>
 <% if host_param_true?('xrdp') -%>
@@ -221,11 +253,22 @@ chmod 0644 /etc/X11/Xwrapper.config
 
 
 <% if rhel_compatible && os_major == 7 %>
-#  echo ">>> Applying krb5child SELinux policy"
-#  wget -q -O /tmp/my-krb5child.te http://repo.example.org/desktop/selinux/my-krb5child.te
-#  checkmodule -< -m -o /tmp/my-krb5child.mod /tmp/my-krb5child.te
-#  semodule_package -m /tmp/my-krb5child.mod -o /tmp/my-krb5child.pp
-#  semodule -i /tmp/my-krb5child.pp
+#   echo ">>> Applying krb5child SELinux policy"
+#   cat << EOF > /tmp/my-krb5child.te
+# module my-krb5child 1.0;
+#
+# require {
+#     type sssd_t;
+#     type kernel_t;
+#     class key { read view write };
+# }
+#
+# #============= sssd_t ==============
+# allow sssd_t kernel_t:key { read view write };
+# EOF
+#   checkmodule -M -m -o /tmp/my-krb5child.mod /tmp/my-krb5child.te
+#   semodule_package -m /tmp/my-krb5child.mod -o /tmp/my-krb5child.pp
+#   semodule -i /tmp/my-krb5child.pp
 
   <%# Fix libcolor %>
   echo ">>> Fix libcolor"
@@ -235,31 +278,29 @@ chmod 0644 /etc/X11/Xwrapper.config
 <% end %>
 
 <%# Configure Firefox %>
+yum -q -y install firefox
 echo ">>> Configure Firefox defaults"
 chmod 755 /usr/lib64/firefox/defaults
 
 # Configure Firefox to read in our custom config
-cat >> /usr/lib64/firefox/defaults/preferences/all-redhat.js << EOF
+<% if is_fedora %>
+  prefs_dir=/etc/firefox/pref
+  prefs_file=/usr/lib64/firefox/browser/defaults/preferences/firefox-redhat-default-prefs.js
+<% else %>
+  prefs_dir=/usr/lib64/firefox/defaults/preferences
+  prefs_file=${prefs_dir}/all-redhat.js
+<% end %>
+cat << EOF >> ${prefs_file}
+
 pref("general.config.obscure_value",    0);
 pref("general.config.filename",         "mozilla-custom.cfg");
 EOF
 
 # Install our custom config
-cat << EOF > /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
+cat << EOF > ${prefs_dir}/mozilla-custom.cfg
 <%= snippet "GG-Xconfig_mozilla-custom.cfg" %>
 EOF
-chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
-
-
-
-# Install autostart scripts
-#echo ">>> Install Login Scripts"
-#wget -q -O /usr/local/bin/myorg_gui.sh http://repo.example.org/desktop/scripts/myorg_gui.sh
-#chmod 755 /usr/local/bin/myorg_gui.sh
-
-#wget -q -O /etc/xdg/autostart/myorg_gui.desktop http://repo.example.org/desktop/scripts/myorg_gui.desktop
-#chmod 644 /etc/xdg/autostart/myorg_gui.desktop
-
+chmod 644 ${prefs_dir}/mozilla-custom.cfg
 
 
 # Install and configure Citrix
@@ -267,8 +308,8 @@ chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
 #mkdir -p /tmp/rtmeok  # Needed for hdx-realtime install
 #yum -q -y install ICAClient citrix-hdx-realtime-media-engine
 
-#cp /etc/pki/ca-trust/source/anchors/GG-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
-#chmod 644 /etc/pki/ca-trust/source/anchors/GG-CA2.pem
+#cp /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem /opt/Citrix/ICAClient/keystore/cacerts
+#chmod 644 /etc/pki/ca-trust/source/anchors/GatwardIT-CA2.pem
 #/opt/Citrix/ICAClient/util/ctx_rehash
 
 # Copy global default configuration
@@ -293,7 +334,7 @@ chmod 644 /usr/lib64/firefox/defaults/preferences/mozilla-custom.cfg
 
 # Configure Printer
 echo ">>> Configure Printing"
-yum -q -y install cups foomatic-db-ppds foomatic-filters
+yum -q -y install cups foomatic-db-ppds <% if rhel_compatible %>foomatic-filters<% end %>
 firewall-offline-cmd --add-service ipp-client --add-service mdns
 
 cat << EOF > /etc/cups/ppd/RICOH-MP-C4503.ppd

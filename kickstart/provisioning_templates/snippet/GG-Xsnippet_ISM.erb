@@ -68,6 +68,7 @@ net.ipv4.tcp_syncookies = 1
 net.ipv4.conf.all.rp_filter = 1
 net.ipv4.conf.default.rp_filter = 1
 
+kernel.printk = 4 4 1 7
 EOF
 
 <% if rhel_compatible && os_major >= 7 %>
@@ -305,33 +306,6 @@ EOF
   sed -i '/GRUB_CMDLINE_LINUX.*$/{s/audit=1/audit=1 audit_backlog_limit=8192/}' /etc/default/grub
 <% end -%>
 
-<%# --------------------------- FIREWALL SECTION ------------------------------%>
-<%# Enable default firewall logging %>
-<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
-  firewall-offline-cmd --set-log-denied=unicast
-  firewall-offline-cmd --remove-service ssh
-  firewall-offline-cmd --add-rich-rule 'rule service name="ssh" log prefix="ACCEPT: " accept'
-<% else -%>
-  # EL6 iptables log segment - TBD
-<% end -%>
-
-<%# Set _DROP and _REJECT logs to thier own logfile instead of syslog, and create logrotate %>
-cat << EOF > /etc/rsyslog.d/iptables.conf
-:msg,contains,"_DROP" /var/log/iptables.log
-:msg,contains,"_REJECT" /var/log/iptables.log
-:msg,contains,"ACCEPT: " /var/log/iptables.log
-& stop
-EOF
-
-cat << EOF > /etc/logrotate.d/iptables
-/var/log/iptables.log {
-    nocreate
-    daily
-    missingok
-    rotate 7
-    compress
-}
-EOF
 
 <%# ---------------------------- SYSLOG SECTION -------------------------------%>
 echo ">>> Configure syslog"
@@ -368,23 +342,36 @@ sed -i 's/#$ModLoad immark/$ModLoad immark/g' /etc/rsyslog.conf
 <% end -%>
 
 
-<%# --------------------------- SSH SECTION -----------------------------%>
-echo ">>> Applying SSH client hardening"
-cat << EOF > /etc/ssh/ssh_config
-Host *
-	HostKeyAlgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-rsa
-	KexAlgorithms ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group14-sha1
-	Ciphers aes256-ctr
-	MACs hmac-sha2-512,hmac-sha2-256,hmac-sha1
-	GSSAPIAuthentication yes
-	ForwardX11Trusted yes
-	SendEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
-	SendEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
-	SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE
-	SendEnv XMODIFIERS
+<%# --------------------------- FIREWALL SECTION ------------------------------%>
+<%# Enable default firewall logging %>
+echo ">>> Configure firewall logging"
+<% if (is_fedora && os_major >= 16) || (rhel_compatible && os_major >= 7) -%>
+  firewall-offline-cmd --set-log-denied=unicast
+  firewall-offline-cmd --remove-service ssh
+  firewall-offline-cmd --add-rich-rule 'rule service name="ssh" log prefix="ACCEPT: " accept'
+<% else -%>
+  # EL6 iptables log segment - TBD
+<% end -%>
+
+<%# Set _DROP and _REJECT logs to thier own logfile instead of syslog, and create logrotate %>
+cat << EOF > /etc/rsyslog.d/iptables.conf
+:msg,contains,"_DROP" /var/log/iptables.log
+:msg,contains,"_REJECT" /var/log/iptables.log
+:msg,contains,"ACCEPT: " /var/log/iptables.log
+& stop
 EOF
 
+cat << EOF > /etc/logrotate.d/iptables
+/var/log/iptables.log {
+    nocreate
+    daily
+    missingok
+    rotate 7
+    compress
+}
+EOF
 
+<%# --------------------------- SSH SECTION -----------------------------%>
 echo ">>> Applying SSH server hardening"
 cat << EOF > /etc/ssh/sshd_config
 <%= snippet "GG-Xconfig_sshd_config" %>
@@ -626,6 +613,7 @@ sed -i 's/nofb/nofb selinux=1 enforcing=1/' /etc/grub.conf
 <%# Disable three-finger-salute reboot activation %>
 echo ">>> Disable Ctrl-Alt-Del"
 <% if use_systemd %>
+systemctl disable ctrl-alt-del.target
 systemctl mask ctrl-alt-del.target && systemctl daemon-reload
 <% else %>
 echo 'exec /usr/bin/logger -p authpriv.notice -t init "Ctrl-Alt-Del was pressed and ignored"' > /etc/init/control-alt-delete.override
@@ -664,8 +652,10 @@ yum -q -y remove at rhnsd rhnlib iwl*-firmware 2>/dev/null
 <%# ------------------GLOBAL CRYPTO POLICY SECTION (EL8)------------%>
 <%# On EL8 servers the global crypto policy needs to be increased %>
 <% if (rhel_compatible && os_major >= 8) || (is_fedora && os_major >= 30) %>
-echo ">>> Setting global crypto policy"
-/usr/bin/update-crypto-policies --set FUTURE
+### Commented out for now as RedHat CDN and Fedora repos only use 2048bit RSA ###
+### 'FUTURE MODE' requires a minimum of 3072bit RSA ###
+#echo ">>> Setting global crypto policy"
+#/usr/bin/update-crypto-policies --set FUTURE
 <% end %>
 
 

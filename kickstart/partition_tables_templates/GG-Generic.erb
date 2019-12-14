@@ -60,7 +60,6 @@ grep -E -q '[v|s]db1|nvme1p1|c1d1p1' /proc/partitions  &&  EXISTING="true"
 echo zerombr >> /tmp/diskpart.cfg
 echo clearpart --drives ${PRI_DISK} --all --initlabel >> /tmp/diskpart.cfg
 echo part /boot --fstype <%= fstype %> --size=<%= bootsize %> --ondisk=${PRI_DISK} --asprimary >> /tmp/diskpart.cfg
-#echo part /boot/efi --fstype efi --size=256 --ondisk=${PRI_DISK} --asprimary >> /tmp/diskpart.cfg
 <% if host_param_true?('luks') -%>
   echo part pv.01 --size=32767 --grow --ondisk=${PRI_DISK} --encrypted <%= luksver %> --passphrase=<%= host_param('luks-passphrase') %> >> /tmp/diskpart.cfg
 <% else %>

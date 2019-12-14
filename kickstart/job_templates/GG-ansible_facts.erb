@@ -1,0 +1,20 @@
+<%#
+name: GG-Ansible Facts
+snippet: false
+model: JobTemplate
+job_category: Ansible Playbook
+description_format: Gather Ansible facts
+provider_type: Ansible
+kind: job_template
+organizations:
+- GatwardIT
+locations:
+- Home
+%>
+
+---
+- hosts: all
+  pre_tasks:
+    - name: Display all parameters known for the Foreman host
+      debug:
+        var: foreman
