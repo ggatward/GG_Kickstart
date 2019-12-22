@@ -30,7 +30,7 @@ section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
 %>
 
 
-<%= @mediapath %><%= proxy_string %>
+<%= @mediapath %>
 <% @additional_media.each do |medium| -%>
 repo --name <%= medium[:name] %> --baseurl <%= medium[:url] %> <%= medium[:install] ? ' --install' : '' %>
 <% end %>
