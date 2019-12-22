@@ -52,7 +52,7 @@ network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{sub
 rootpw --iscrypted <%= root_pass %>
 firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
 
-<% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major > 7) -%>
+<% if rhel_compatible && os_major > 7 -%>
 authselect --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha512' %> --kickstart
 <% else -%>
 authconfig --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha512' %> --kickstart
