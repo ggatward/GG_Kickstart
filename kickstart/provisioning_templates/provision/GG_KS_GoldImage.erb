@@ -126,6 +126,15 @@ exec < /dev/tty3 > /dev/tty3
 <%= snippet 'GG-kickstart_networking_setup' %>
 <% end -%>
 
+# Copy root SSH key for bootstrap
+mkdir -p /root/.ssh
+cat << EOF > /root/.ssh/id_rsa
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCu4S8wzEwXIVuHD+KK7y08lravhF5BvApvXRAPXXeaHtQ3HeYN+7t9HpyIQYg6OwsxNX7WbKgZ50Ok12t3EPRbEr8M9wWW+S5l0SJlzv7h26uNcIucFvlo5aPmV+XLFY7qokaKPaMEwrb7wG/gBTfsjLbhFNFXfT1bEMEp87/K6LUwoNQ3dBrZq5UWYuvMMW4kMH1igKB9dCWraHGqzlyJh4ol9XApPaDfJ8ujSiNs7NzZhUFeYpGC/eMAwnuhFWUZf/SJJJ53Y6AmPTBZVmpPbaJSNnakWssAG54t6Ay3orVi+cvvQlIB2oyilxE06i7FXgZSouwtJAk0Q2E/4mfj root@localhost.localdomain
+EOF
+cp /root/.ssh/id_rsa /root/.ssh/authorized_keys
+chmod 644 /root/.ssh/*
+restorecon -R /root/.ssh
+
 sync
 
 # Inform the build system that we are done.
