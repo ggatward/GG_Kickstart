@@ -1,0 +1,137 @@
+<%#
+kind: provision
+name: GG_KS_GoldImage
+model: ProvisioningTemplate
+oses:
+- CentOS
+- RedHat
+locations:
+- Home
+organizations:
+- GatwardIT
+- MyOrg
+%>
+<%#
+This template accepts the following parameters:
+- lang: string (default="en_US.UTF-8")
+- selinux-mode: string (default="enforcing")
+- keyboard: string (default="us")
+- time-zone: string (default="UTC")
+- ntp-server: string (default="0.fedora.pool.ntp.org")
+- bootloader-append: string (default="nofb quiet splash=quiet")
+%>
+<%
+rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+is_centos = @host.operatingsystem.name == 'CentOS'
+os_major = @host.operatingsystem.major.to_i
+os_minor = @host.operatingsystem.minor.to_i
+# safemode renderer does not support unary negation
+section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
+%>
+
+
+<%= @mediapath %><%= proxy_string %>
+<% @additional_media.each do |medium| -%>
+repo --name <%= medium[:name] %> --baseurl <%= medium[:url] %> <%= medium[:install] ? ' --install' : '' %>
+<% end %>
+
+lang <%= host_param('lang') || 'en_US.UTF-8' %>
+selinux --<%= host_param('selinux-mode') || host_param('selinux') || 'enforcing' %>
+keyboard <%= host_param('keyboard') || 'us' %>
+skipx
+
+<% subnet = @host.subnet -%>
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+<% dhcp = subnet.dhcp_boot_mode? && !@static -%>
+<% else -%>
+<% dhcp = !@static -%>
+<% end -%>
+
+network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{subnet.mask} --gateway=#{subnet.gateway} --nameserver=#{[subnet.dns_primary, subnet.dns_secondary].select{ |item| item.present? }.join(',')} --mtu=#{subnet.mtu.to_s}" %> --hostname <%= @host %><%= os_major >= 6 ? " --device=#{@host.mac}" : '' -%>
+
+rootpw --iscrypted <%= root_pass %>
+firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
+
+<% if (is_fedora && os_major >= 28) || (rhel_compatible && os_major > 7) -%>
+authselect --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha512' %> --kickstart
+<% else -%>
+authconfig --useshadow --passalgo=<%= @host.operatingsystem.password_hash.downcase || 'sha512' %> --kickstart
+<% end -%>
+timezone --utc <%= host_param('time-zone') || 'UTC' %> <%= host_param('ntp-server') ? "--ntpservers #{host_param('ntp-server')}" : '' %>
+
+
+<%# This may or may not be required, depending on the install source for EL8. For Foreman using Satellite as the repo, it seems to be needed. %>
+<% if @host.operatingsystem.name == 'RedHat' && os_major == 8 -%>
+<%#
+repo --name Red_Hat_Enterprise_Linux_8_for_x86_64_-_AppStream_Kickstart_8 --baseurl http://repo.example.com/pulp/repos/MyOrg/Library/rhel_8_server/content/dist/rhel8/8.0/x86_64/appstream/kickstart/
+%>
+<% end -%>
+
+bootloader --location=mbr --append="<%= host_param('bootloader-append') || 'nofb quiet splash=quiet' %>" <%= @grub_pass %>
+
+<%# Include the dynamic disk config if it is defined -%>
+<% if @dynamic -%>
+%include /tmp/diskpart.cfg
+<% else -%>
+<%= @host.diskLayout %>
+<% end -%>
+
+text
+<% if @host.respond_to?(:bootdisk_build?) && @host.bootdisk_build? %>
+reboot --eject
+<% else -%>
+reboot
+<% end -%>
+
+%packages
+@Core
+NetworkManager
+chrony
+crontabs
+dhclient
+redhat-lsb-core
+wget
+<% if (rhel_compatible && os_major >= 8) -%>
+python3
+<% else -%>
+python
+<% end -%>
+
+
+<%# Generate dynamic partition table configuration -%>
+<% if @dynamic -%>
+%pre
+<%= @host.diskLayout %>
+<%= section_end -%>
+<% end -%>
+
+%post --nochroot
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+cp -va /etc/resolv.conf /mnt/sysimage/etc/resolv.conf
+/usr/bin/chvt 1
+) 2>&1 | tee /mnt/sysimage/root/install.postnochroot.log
+<%= section_end -%>
+
+
+%post
+logger "Starting anaconda <%= @host %> postinstall"
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+<% if subnet.respond_to?(:dhcp_boot_mode?) || @host.subnet6.respond_to?(:dhcp_boot_mode?) -%>
+<%= snippet 'GG-kickstart_networking_setup' %>
+<% end -%>
+
+sync
+
+# Inform the build system that we are done.
+echo "Informing Foreman that we are built"
+wget -q -O /dev/null --no-check-certificate <%= foreman_url('built') %>
+) 2>&1 | tee /root/install.post.log
+exit 0
+
+<%= section_end -%>
